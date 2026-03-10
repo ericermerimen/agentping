@@ -5,7 +5,7 @@ let package = Package(
     name: "AgentsHub",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "AgentsHub", targets: ["AgentsHub"]),
+        .executable(name: "AgentsHubApp", targets: ["AgentsHub"]),
         .executable(name: "agentshub", targets: ["AgentsHubCLI"]),
     ],
     dependencies: [

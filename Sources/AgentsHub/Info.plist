@@ -4,6 +4,8 @@
 <dict>
     <key>LSUIElement</key>
     <true/>
+    <key>CFBundleExecutable</key>
+    <string>AgentsHubApp</string>
     <key>CFBundleName</key>
     <string>AgentsHub</string>
     <key>CFBundleIdentifier</key>

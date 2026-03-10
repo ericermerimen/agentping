@@ -7,6 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 APP_NAME="AgentsHub"
+APP_BINARY_NAME="AgentsHubApp"
 CLI_NAME="agentshub"
 APP_BUNDLE="$PROJECT_DIR/$APP_NAME.app"
 
@@ -55,7 +56,7 @@ if [ "$SKIP_BUILD" = false ]; then
     fi
 fi
 
-BINARY="$BUILD_OUTPUT/$APP_NAME"
+BINARY="$BUILD_OUTPUT/$APP_BINARY_NAME"
 CLI_BINARY="$BUILD_OUTPUT/$CLI_NAME"
 
 if [ ! -f "$BINARY" ]; then
@@ -69,8 +70,8 @@ rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$APP_BUNDLE/Contents/Resources"
 
-# Copy main app binary
-cp "$BINARY" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+# Copy main app binary (name must match CFBundleExecutable in Info.plist)
+cp "$BINARY" "$APP_BUNDLE/Contents/MacOS/$APP_BINARY_NAME"
 
 # Copy CLI binary alongside
 if [ -f "$CLI_BINARY" ]; then
