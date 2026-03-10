@@ -32,8 +32,12 @@ rm -rf "$INSTALL_DIR/AgentsHub.app"
 cp -r "$TMPDIR/AgentsHub.app" "$INSTALL_DIR/"
 
 echo "==> Linking CLI..."
-mkdir -p "$(dirname "$CLI_LINK")"
-ln -sf "$INSTALL_DIR/AgentsHub.app/Contents/MacOS/agentshub" "$CLI_LINK"
+if ln -sf "$INSTALL_DIR/AgentsHub.app/Contents/MacOS/agentshub" "$CLI_LINK" 2>/dev/null; then
+    echo "    Linked to $CLI_LINK"
+else
+    echo "    Need sudo to link to $CLI_LINK"
+    sudo ln -sf "$INSTALL_DIR/AgentsHub.app/Contents/MacOS/agentshub" "$CLI_LINK"
+fi
 
 # Cleanup
 rm -rf "$TMPDIR"
