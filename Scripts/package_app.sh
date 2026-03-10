@@ -85,6 +85,10 @@ cp "$PROJECT_DIR/Sources/AgentsHub/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
 echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
 
 echo "==> Code signing ($SIGN_IDENTITY)..."
+# Sign nested binaries first
+codesign --force --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/MacOS/$CLI_NAME"
+codesign --force --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/MacOS/$APP_BINARY_NAME"
+# Sign the bundle
 codesign --force --sign "$SIGN_IDENTITY" \
     --entitlements /dev/stdin \
     "$APP_BUNDLE" <<'ENTITLEMENTS'
