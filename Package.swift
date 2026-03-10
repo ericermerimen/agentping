@@ -8,7 +8,9 @@ let package = Package(
         .executable(name: "AgentsHub", targets: ["AgentsHub"]),
         .executable(name: "agentshub", targets: ["AgentsHubCLI"]),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
+    ],
     targets: [
         .executableTarget(
             name: "AgentsHub",
@@ -17,11 +19,17 @@ let package = Package(
         ),
         .executableTarget(
             name: "AgentsHubCLI",
-            dependencies: ["AgentsHubCore"],
+            dependencies: [
+                "AgentsHubCore",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
             path: "Sources/AgentsHubCLI"
         ),
         .target(
             name: "AgentsHubCore",
+            dependencies: [
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
             path: "Sources/AgentsHubCore"
         ),
         .testTarget(
