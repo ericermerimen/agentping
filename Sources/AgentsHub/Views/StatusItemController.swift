@@ -51,8 +51,7 @@ final class StatusItemController: NSObject {
             attr.addAttribute(.foregroundColor, value: NSColor.systemRed, range: NSRange(location: 0, length: attr.length))
             button.attributedTitle = attr
         } else {
-            button.attributedTitle = nil
-            button.title = title
+            button.attributedTitle = NSAttributedString(string: title)
         }
     }
 
