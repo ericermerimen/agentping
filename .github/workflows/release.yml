@@ -14,17 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build release binary
-        run: swift build -c release --arch arm64 --arch x86_64
-
-      - name: Package app bundle
-        run: ./Scripts/package_app.sh --release
+      - name: Build and package universal app bundle
+        run: ./Scripts/package_app.sh --release --universal
 
       - name: Create tarball
         run: |
           tar -czf AgentsHub-${{ github.ref_name }}-macos.tar.gz AgentsHub.app
-          # Also ship standalone CLI binary
-          cp .build/release/agentshub agentshub-cli
+          cp AgentsHub.app/Contents/MacOS/agentshub agentshub-cli
           tar -czf agentshub-cli-${{ github.ref_name }}-macos.tar.gz agentshub-cli
 
       - name: Compute SHA256
@@ -43,14 +39,13 @@ jobs:
           body: |
             ## Install
 
-            **Homebrew (recommended):**
+            **One-line install:**
             ```bash
-            brew install ericermerimen/tap/agentshub
+            curl -fsSL https://raw.githubusercontent.com/ericermerimen/agentshub/main/Scripts/install-remote.sh | bash
             ```
 
             **Manual download:**
             ```bash
-            # Download and extract
             tar xzf AgentsHub-${{ github.ref_name }}-macos.tar.gz
             cp -r AgentsHub.app /Applications/
             ln -sf /Applications/AgentsHub.app/Contents/MacOS/agentshub /usr/local/bin/agentshub

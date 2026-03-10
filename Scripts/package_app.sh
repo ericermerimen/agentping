@@ -2,48 +2,65 @@
 set -euo pipefail
 
 # AgentsHub - Build and package as macOS .app bundle
-# Usage: ./Scripts/package_app.sh [--release] [--sign IDENTITY]
+# Usage: ./Scripts/package_app.sh [--release] [--universal] [--sign IDENTITY] [--skip-build]
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-BUILD_DIR="$PROJECT_DIR/.build"
 APP_NAME="AgentsHub"
 CLI_NAME="agentshub"
 APP_BUNDLE="$PROJECT_DIR/$APP_NAME.app"
 
 CONFIG="debug"
+UNIVERSAL=false
+SKIP_BUILD=false
 SIGN_IDENTITY="-" # ad-hoc by default
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         --release) CONFIG="release"; shift ;;
+        --universal) UNIVERSAL=true; shift ;;
+        --skip-build) SKIP_BUILD=true; shift ;;
         --sign) SIGN_IDENTITY="$2"; shift 2 ;;
         --help)
-            echo "Usage: $0 [--release] [--sign IDENTITY]"
+            echo "Usage: $0 [--release] [--universal] [--skip-build] [--sign IDENTITY]"
             echo ""
             echo "Options:"
-            echo "  --release    Build in release mode (optimized)"
-            echo "  --sign ID    Code signing identity (default: ad-hoc)"
+            echo "  --release      Build in release mode (optimized)"
+            echo "  --universal    Build universal binary (arm64 + x86_64)"
+            echo "  --skip-build   Skip build step (use existing binaries)"
+            echo "  --sign ID      Code signing identity (default: ad-hoc)"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
 
-echo "==> Building AgentsHub ($CONFIG)..."
-cd "$PROJECT_DIR"
-
-if [ "$CONFIG" = "release" ]; then
-    swift build -c release
+# Determine build directory based on build type
+if [ "$UNIVERSAL" = true ]; then
+    BUILD_OUTPUT="$PROJECT_DIR/.build/apple/Products/Release"
 else
-    swift build
+    BUILD_OUTPUT="$PROJECT_DIR/.build/$CONFIG"
 fi
 
-BINARY="$BUILD_DIR/$CONFIG/$APP_NAME"
-CLI_BINARY="$BUILD_DIR/$CONFIG/$CLI_NAME"
+if [ "$SKIP_BUILD" = false ]; then
+    echo "==> Building AgentsHub ($CONFIG, universal=$UNIVERSAL)..."
+    cd "$PROJECT_DIR"
+
+    if [ "$UNIVERSAL" = true ]; then
+        swift build -c release --arch arm64 --arch x86_64
+    elif [ "$CONFIG" = "release" ]; then
+        swift build -c release
+    else
+        swift build
+    fi
+fi
+
+BINARY="$BUILD_OUTPUT/$APP_NAME"
+CLI_BINARY="$BUILD_OUTPUT/$CLI_NAME"
 
 if [ ! -f "$BINARY" ]; then
     echo "ERROR: Binary not found at $BINARY"
+    echo "  If you built with --arch flags separately, use --skip-build and check the path."
     exit 1
 fi
 
