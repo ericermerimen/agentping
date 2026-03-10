@@ -1,17 +1,17 @@
 import Foundation
 
-public struct ProcessInfo {
+public struct AgentProcessInfo {
     public let pid: Int
     public let ppid: Int
     public let command: String
 
-    public static func parse(psLine: String) -> ProcessInfo? {
+    public static func parse(psLine: String) -> AgentProcessInfo? {
         let trimmed = psLine.trimmingCharacters(in: .whitespaces)
         let parts = trimmed.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: true)
         guard parts.count >= 3,
               let pid = Int(parts[0]),
               let ppid = Int(parts[1]) else { return nil }
-        return ProcessInfo(pid: pid, ppid: ppid, command: String(parts[2]))
+        return AgentProcessInfo(pid: pid, ppid: ppid, command: String(parts[2]))
     }
 }
 
@@ -36,7 +36,7 @@ public final class ProcessScanner {
     }
 
     /// Scan for running claude processes and return basic info
-    public func scan() -> [ProcessInfo] {
+    public func scan() -> [AgentProcessInfo] {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/ps")
         task.arguments = ["-eo", "pid,ppid,comm"]
@@ -52,7 +52,7 @@ public final class ProcessScanner {
             guard let output = String(data: data, encoding: .utf8) else { return [] }
 
             return output.components(separatedBy: "\n")
-                .compactMap { ProcessInfo.parse(psLine: $0) }
+                .compactMap { AgentProcessInfo.parse(psLine: $0) }
                 .filter { $0.command.contains("claude") }
         } catch {
             return []
@@ -76,7 +76,7 @@ public final class ProcessScanner {
             guard let output = String(data: data, encoding: .utf8) else { return nil }
 
             let lines = output.components(separatedBy: "\n")
-            guard let info = lines.dropFirst().compactMap({ ProcessInfo.parse(psLine: $0) }).first else {
+            guard let info = lines.dropFirst().compactMap({ AgentProcessInfo.parse(psLine: $0) }).first else {
                 return nil
             }
 
