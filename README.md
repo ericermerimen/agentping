@@ -18,24 +18,30 @@ A macOS menu bar app that monitors your Claude Code sessions, shows their status
 
 ## Install
 
-### Homebrew (recommended)
+### One-line install (recommended)
+
+No Xcode required — downloads the pre-built `.app` from GitHub Releases:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ericermerimen/agentshub/main/Scripts/install-remote.sh | bash
+```
+
+Then start the app:
+
+```bash
+open /Applications/AgentsHub.app
+```
+
+### Homebrew
+
+> **Note:** Requires creating the [homebrew-tap](https://github.com/ericermerimen/homebrew-tap) repo first. See [Homebrew Setup](#homebrew-setup) below.
 
 ```bash
 brew tap ericermerimen/tap
 brew install agentshub
 ```
 
-Then start the menu bar app:
-
-```bash
-open $(brew --prefix)/AgentsHub.app
-# or use brew services to auto-start on login:
-brew services start agentshub
-```
-
-### Download from GitHub Releases
-
-No Xcode required — just download the pre-built `.app`:
+### Download manually from GitHub Releases
 
 1. Go to [Releases](https://github.com/ericermerimen/agentshub/releases/latest)
 2. Download `AgentsHub-vX.X.X-macos.tar.gz`
@@ -44,13 +50,10 @@ No Xcode required — just download the pre-built `.app`:
 ```bash
 tar xzf AgentsHub-*.tar.gz
 cp -r AgentsHub.app /Applications/
-# Optional: add CLI to your PATH
 ln -sf /Applications/AgentsHub.app/Contents/MacOS/agentshub /usr/local/bin/agentshub
 ```
 
-4. Open from `/Applications/` or run `open /Applications/AgentsHub.app`
-
-### Build from Source
+### Build from source
 
 Only needed if you want to develop or modify AgentsHub. Requires Xcode 15+ or Swift 5.9+.
 
@@ -60,13 +63,31 @@ cd agentshub
 ./Scripts/install.sh
 ```
 
-Or manually:
+## Creating a Release
+
+Tag a version to trigger the GitHub Actions build:
 
 ```bash
-swift build -c release
-./Scripts/package_app.sh --release
-cp -r AgentsHub.app /Applications/
+git tag v0.1.0
+git push origin v0.1.0
 ```
+
+This builds a universal binary (arm64 + x86_64), packages the `.app`, and publishes it as a GitHub Release — no Xcode needed on the user's machine.
+
+## Homebrew Setup
+
+To enable `brew install`, create a **separate** repo called [`homebrew-tap`](https://github.com/ericermerimen/homebrew-tap) and copy the formula:
+
+```bash
+# Create the tap repo on GitHub, then:
+gh repo create ericermerimen/homebrew-tap --public
+git clone https://github.com/ericermerimen/homebrew-tap.git
+mkdir -p homebrew-tap/Formula
+cp HomebrewFormula/agentshub.rb homebrew-tap/Formula/agentshub.rb
+cd homebrew-tap && git add . && git commit -m "Add agentshub formula" && git push
+```
+
+After a release, update the `url` and `sha256` in the formula to match the new release tarball.
 
 ## CLI Usage
 
