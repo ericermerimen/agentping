@@ -15,9 +15,44 @@ A macOS menu bar app that monitors your Claude Code sessions, shows their status
 ## Requirements
 
 - macOS 14 (Sonoma) or later
-- Xcode 15+ or Swift 5.9+ toolchain
 
-## Quick Install
+## Install
+
+### Homebrew (recommended)
+
+```bash
+brew tap ericermerimen/tap
+brew install agentshub
+```
+
+Then start the menu bar app:
+
+```bash
+open $(brew --prefix)/AgentsHub.app
+# or use brew services to auto-start on login:
+brew services start agentshub
+```
+
+### Download from GitHub Releases
+
+No Xcode required — just download the pre-built `.app`:
+
+1. Go to [Releases](https://github.com/ericermerimen/agentshub/releases/latest)
+2. Download `AgentsHub-vX.X.X-macos.tar.gz`
+3. Extract and install:
+
+```bash
+tar xzf AgentsHub-*.tar.gz
+cp -r AgentsHub.app /Applications/
+# Optional: add CLI to your PATH
+ln -sf /Applications/AgentsHub.app/Contents/MacOS/agentshub /usr/local/bin/agentshub
+```
+
+4. Open from `/Applications/` or run `open /Applications/AgentsHub.app`
+
+### Build from Source
+
+Only needed if you want to develop or modify AgentsHub. Requires Xcode 15+ or Swift 5.9+.
 
 ```bash
 git clone https://github.com/ericermerimen/agentshub.git
@@ -25,40 +60,17 @@ cd agentshub
 ./Scripts/install.sh
 ```
 
-This builds a release binary, copies `AgentsHub.app` to `/Applications/`, and symlinks the `agentshub` CLI to `/usr/local/bin/`.
-
-## Manual Build
+Or manually:
 
 ```bash
-# Debug build
-swift build
-
-# Release build
 swift build -c release
-
-# Run the app directly
-.build/debug/AgentsHub
-
-# Run the CLI
-.build/debug/agentshub --help
-```
-
-## Package as .app Bundle
-
-```bash
-# Debug build + app bundle
-./Scripts/package_app.sh
-
-# Release build + app bundle
 ./Scripts/package_app.sh --release
-
-# With a signing identity
-./Scripts/package_app.sh --release --sign "Developer ID Application: Your Name"
+cp -r AgentsHub.app /Applications/
 ```
-
-The `.app` bundle is created in the project root. Install it by dragging to `/Applications/`.
 
 ## CLI Usage
+
+The `agentshub` CLI is bundled inside the `.app` (no separate install needed if you symlinked it).
 
 ```bash
 # List all sessions
@@ -95,6 +107,21 @@ AgentsHub works best with Claude Code hooks. Open the app preferences and click 
 ## Accessibility Permission
 
 AgentsHub uses the macOS Accessibility API to focus terminal windows when you click a session. On first launch, macOS will prompt you to grant Accessibility access in **System Settings > Privacy & Security > Accessibility**.
+
+## Uninstall
+
+**Homebrew:**
+```bash
+brew services stop agentshub
+brew uninstall agentshub
+```
+
+**Manual:**
+```bash
+rm -rf /Applications/AgentsHub.app
+rm -f /usr/local/bin/agentshub
+rm -rf ~/.agentshub
+```
 
 ## Architecture
 
