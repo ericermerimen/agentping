@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build release binary
+        run: swift build -c release --arch arm64 --arch x86_64
+
+      - name: Package app bundle
+        run: ./Scripts/package_app.sh --release
+
+      - name: Create tarball
+        run: |
+          tar -czf AgentsHub-${{ github.ref_name }}-macos.tar.gz AgentsHub.app
+          # Also ship standalone CLI binary
+          cp .build/release/agentshub agentshub-cli
+          tar -czf agentshub-cli-${{ github.ref_name }}-macos.tar.gz agentshub-cli
+
+      - name: Compute SHA256
+        id: sha
+        run: |
+          echo "app_sha=$(shasum -a 256 AgentsHub-${{ github.ref_name }}-macos.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "cli_sha=$(shasum -a 256 agentshub-cli-${{ github.ref_name }}-macos.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            AgentsHub-${{ github.ref_name }}-macos.tar.gz
+            agentshub-cli-${{ github.ref_name }}-macos.tar.gz
+          body: |
+            ## Install
+
+            **Homebrew (recommended):**
+            ```bash
+            brew install ericermerimen/tap/agentshub
+            ```
+
+            **Manual download:**
+            ```bash
+            # Download and extract
+            tar xzf AgentsHub-${{ github.ref_name }}-macos.tar.gz
+            cp -r AgentsHub.app /Applications/
+            ln -sf /Applications/AgentsHub.app/Contents/MacOS/agentshub /usr/local/bin/agentshub
+            ```
+
+            ## SHA256 checksums
+            - `AgentsHub-${{ github.ref_name }}-macos.tar.gz`: `${{ steps.sha.outputs.app_sha }}`
+            - `agentshub-cli-${{ github.ref_name }}-macos.tar.gz`: `${{ steps.sha.outputs.cli_sha }}`

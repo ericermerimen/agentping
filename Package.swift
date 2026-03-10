@@ -15,7 +15,8 @@ let package = Package(
         .executableTarget(
             name: "AgentsHub",
             dependencies: ["AgentsHubCore"],
-            path: "Sources/AgentsHub"
+            path: "Sources/AgentsHub",
+            exclude: ["Info.plist"]
         ),
         .executableTarget(
             name: "AgentsHubCLI",
@@ -27,9 +28,6 @@ let package = Package(
         ),
         .target(
             name: "AgentsHubCore",
-            dependencies: [
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ],
             path: "Sources/AgentsHubCore"
         ),
         .testTarget(

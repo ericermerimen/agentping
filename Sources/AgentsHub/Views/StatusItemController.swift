@@ -3,7 +3,7 @@ import SwiftUI
 import AgentsHubCore
 import Combine
 
-final class StatusItemController {
+final class StatusItemController: NSObject {
     private var statusItem: NSStatusItem
     private var popover: NSPopover
     private var cancellables = Set<AnyCancellable>()
@@ -11,6 +11,7 @@ final class StatusItemController {
     init(manager: SessionManager) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         popover = NSPopover()
+        super.init()
         popover.contentSize = NSSize(width: 340, height: 420)
         popover.behavior = .transient
         popover.contentViewController = NSHostingController(
@@ -35,7 +36,7 @@ final class StatusItemController {
         guard let button = statusItem.button else { return }
 
         let active = sessions.filter { [.running, .needsInput, .idle].contains($0.status) }
-        let needsInput = sessions.contains { $0.status == .needsInput }
+        let needsInput = sessions.contains(where: { $0.status == .needsInput })
 
         let title = active.isEmpty ? "" : " \(active.count)"
         button.title = title
