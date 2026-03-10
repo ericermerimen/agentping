@@ -19,7 +19,11 @@ jobs:
 
       - name: Create tarball
         run: |
-          tar -czf AgentsHub-${{ github.ref_name }}-macos.tar.gz AgentsHub.app
+          # Include a marker file so Homebrew doesn't strip the top-level .app directory
+          mkdir -p pkg
+          cp -r AgentsHub.app pkg/
+          touch pkg/.brew_home
+          tar -czf AgentsHub-${{ github.ref_name }}-macos.tar.gz -C pkg .
           cp AgentsHub.app/Contents/MacOS/agentshub agentshub-cli
           tar -czf agentshub-cli-${{ github.ref_name }}-macos.tar.gz agentshub-cli
 
