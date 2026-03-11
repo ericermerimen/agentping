@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage: curl -fsSL https://raw.githubusercontent.com/ericermerimen/agentping/main/Scripts/install-remote.sh | bash
 
 REPO="ericermerimen/agentping"
-INSTALL_DIR="/Applications"
+INSTALL_DIR="$HOME/Applications"
 CLI_LINK="/usr/local/bin/agentping"
 
 echo "==> Detecting latest release..."
@@ -28,8 +28,15 @@ echo "==> Extracting..."
 tar xzf "$TARBALL" -C "$TMPDIR"
 
 echo "==> Installing to $INSTALL_DIR..."
+mkdir -p "$INSTALL_DIR"
 rm -rf "$INSTALL_DIR/AgentPing.app"
 cp -r "$TMPDIR/AgentPing.app" "$INSTALL_DIR/"
+
+# Clean up old /Applications copy if it exists
+if [ -d "/Applications/AgentPing.app" ]; then
+    echo "==> Removing old copy from /Applications/..."
+    rm -rf /Applications/AgentPing.app 2>/dev/null || sudo rm -rf /Applications/AgentPing.app
+fi
 
 echo "==> Linking CLI..."
 if ln -sf "$INSTALL_DIR/AgentPing.app/Contents/MacOS/agentping" "$CLI_LINK" 2>/dev/null; then
@@ -45,7 +52,7 @@ rm -rf "$TMPDIR"
 echo ""
 echo "==> AgentPing $TAG installed!"
 echo ""
-echo "  Start the app:  open /Applications/AgentPing.app"
+echo "  Start the app:  open ~/Applications/AgentPing.app"
 echo "  CLI:             agentping --help"
 echo ""
 echo "  To set up Claude Code hooks, open AgentPing preferences"
