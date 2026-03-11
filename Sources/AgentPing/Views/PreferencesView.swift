@@ -8,6 +8,7 @@ struct PreferencesView: View {
     @AppStorage("scanInterval") private var scanInterval = 10.0
     @AppStorage("costTrackingEnabled") private var costTrackingEnabled = false
     @AppStorage("apiPort") private var apiPort = 19199
+    @StateObject private var updateChecker = UpdateChecker()
 
     var body: some View {
         Form {
@@ -68,9 +69,73 @@ struct PreferencesView: View {
                     copyHookConfig()
                 }
             }
+
+            Section("Updates") {
+                HStack {
+                    Text("Current version")
+                    Spacer()
+                    Text(UpdateChecker.currentVersion)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    Button {
+                        updateChecker.check()
+                    } label: {
+                        if updateChecker.isChecking {
+                            ProgressView()
+                                .controlSize(.small)
+                                .frame(width: 14, height: 14)
+                            Text("Checking...")
+                        } else {
+                            Text("Check for Updates")
+                        }
+                    }
+                    .disabled(updateChecker.isChecking)
+
+                    Spacer()
+
+                    if let error = updateChecker.error {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .lineLimit(1)
+                    } else if updateChecker.hasUpdate, let latest = updateChecker.latestVersion {
+                        Text("v\(latest) available")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    } else if updateChecker.latestVersion != nil {
+                        Text("Up to date")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                }
+
+                if updateChecker.hasUpdate, let url = updateChecker.updateURL {
+                    HStack {
+                        Text("Update via Homebrew:")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Copy Command") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(
+                                "brew update && brew upgrade agentping && sudo cp -pR $(brew --prefix)/opt/agentping/AgentPing.app /Applications/",
+                                forType: .string
+                            )
+                        }
+                        .font(.caption)
+                    }
+
+                    Button("View Release on GitHub") {
+                        NSWorkspace.shared.open(url)
+                    }
+                    .font(.caption)
+                }
+            }
         }
         .formStyle(.grouped)
-        .frame(width: 400, height: 440)
+        .frame(width: 400, height: 520)
     }
 
     private func copyHookConfig() {

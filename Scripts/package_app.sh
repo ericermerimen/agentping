@@ -78,8 +78,17 @@ if [ -f "$CLI_BINARY" ]; then
     cp "$CLI_BINARY" "$APP_BUNDLE/Contents/MacOS/$CLI_NAME"
 fi
 
-# Copy Info.plist
+# Copy Info.plist and inject version from git
 cp "$PROJECT_DIR/Sources/AgentPing/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
+
+# Determine version from git tag (e.g. v0.6.0 -> 0.6.0, v0.7.0-beta.1 -> 0.7.0-beta.1)
+GIT_VERSION=$(git -C "$PROJECT_DIR" describe --tags --always 2>/dev/null || echo "0.0.0-dev")
+GIT_VERSION="${GIT_VERSION#v}"  # strip leading 'v'
+# Short version for CFBundleShortVersionString (strip pre-release suffix for bundle version)
+BUNDLE_SHORT_VERSION=$(echo "$GIT_VERSION" | sed 's/-.*//')
+echo "==> Version: $GIT_VERSION (bundle: $BUNDLE_SHORT_VERSION)"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $GIT_VERSION" "$APP_BUNDLE/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUNDLE_SHORT_VERSION" "$APP_BUNDLE/Contents/Info.plist"
 
 # Copy app icon
 if [ -f "$PROJECT_DIR/Sources/AgentPing/Assets/AppIcon.icns" ]; then

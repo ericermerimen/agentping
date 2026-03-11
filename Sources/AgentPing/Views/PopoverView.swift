@@ -48,6 +48,10 @@ struct PopoverView: View {
             Text("AgentPing")
                 .font(.system(size: 13, weight: .semibold))
 
+            Text(UpdateChecker.currentVersion)
+                .font(.system(size: 10))
+                .foregroundStyle(.quaternary)
+
             Spacer()
 
             if manager.activeSessions.count > 0 {
