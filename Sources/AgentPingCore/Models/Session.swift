@@ -26,6 +26,8 @@ public struct Session: Codable, Identifiable, Equatable {
     public var taskDescription: String?
     public var contextPercent: Double?
     public var pinned: Bool
+    public var provider: String?
+    public var model: String?
 
     public init(
         id: String,
@@ -43,7 +45,9 @@ public struct Session: Codable, Identifiable, Equatable {
         transcriptPath: String? = nil,
         taskDescription: String? = nil,
         contextPercent: Double? = nil,
-        pinned: Bool = false
+        pinned: Bool = false,
+        provider: String? = nil,
+        model: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -61,6 +65,8 @@ public struct Session: Codable, Identifiable, Equatable {
         self.taskDescription = taskDescription
         self.contextPercent = contextPercent
         self.pinned = pinned
+        self.provider = provider
+        self.model = model
     }
 }
 
@@ -70,6 +76,7 @@ extension Session {
         case id, name, status, app, pid, windowId, cwd, file
         case startedAt, lastEventAt, notifications, costUsd
         case transcriptPath, taskDescription, contextPercent, pinned
+        case provider, model
     }
 
     public init(from decoder: Decoder) throws {
@@ -90,6 +97,8 @@ extension Session {
         taskDescription = try container.decodeIfPresent(String.self, forKey: .taskDescription)
         contextPercent = try container.decodeIfPresent(Double.self, forKey: .contextPercent)
         pinned = try container.decodeIfPresent(Bool.self, forKey: .pinned) ?? false
+        provider = try container.decodeIfPresent(String.self, forKey: .provider)
+        model = try container.decodeIfPresent(String.self, forKey: .model)
     }
 }
 
