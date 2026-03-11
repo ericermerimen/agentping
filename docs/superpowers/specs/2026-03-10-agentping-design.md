@@ -1,4 +1,4 @@
-# AgentsHub Design Spec
+# AgentPing Design Spec
 
 ## Goal
 
@@ -12,7 +12,7 @@ Three-layer design:
 Data Layer (inputs)
   1. Process scanner: discovers claude processes, detects parent app
   2. Hook CLI: receives rich status updates from Claude Code hooks
-  Both write to: ~/.agentshub/sessions/<id>.json
+  Both write to: ~/.agentping/sessions/<id>.json
 
 State Layer (core logic)
   SessionManager: watches session directory via FSEvents,
@@ -56,19 +56,19 @@ Users configure Claude Code hooks in `~/.claude/settings.json`:
 {
   "hooks": {
     "PostToolUse": [{
-      "command": "agentshub report --session $CLAUDE_SESSION_ID --event tool-use"
+      "command": "agentping report --session $CLAUDE_SESSION_ID --event tool-use"
     }],
     "Stop": [{
-      "command": "agentshub report --session $CLAUDE_SESSION_ID --event stopped"
+      "command": "agentping report --session $CLAUDE_SESSION_ID --event stopped"
     }],
     "Notification": [{
-      "command": "agentshub report --session $CLAUDE_SESSION_ID --event needs-input"
+      "command": "agentping report --session $CLAUDE_SESSION_ID --event needs-input"
     }]
   }
 }
 ```
 
-The `agentshub report` CLI command writes/updates the session JSON file.
+The `agentping report` CLI command writes/updates the session JSON file.
 
 ### Session JSON Schema
 
@@ -102,7 +102,7 @@ Status values: `running` | `needs-input` | `idle` | `done` | `error` | `unavaila
 
 ```
 ┌──────────────────────────────────────┐
-│  [AGENTSHUB]              3 active   │
+│  [AGENTPING]              3 active   │
 ├──────────────────────────────────────┤
 │  [ Running ]  [ History ]            │
 ├──────────────────────────────────────┤
@@ -136,12 +136,12 @@ Status values: `running` | `needs-input` | `idle` | `done` | `error` | `unavaila
 
 ## CLI Tool
 
-Binary: `agentshub`
+Binary: `agentping`
 
 Commands:
-- `agentshub report --session <id> --event <type> [--name <name>] [--file <file>]` -- called by hooks
-- `agentshub list [--json]` -- list active sessions (for scripting)
-- `agentshub status` -- one-line summary (e.g., "3 running, 1 needs input")
+- `agentping report --session <id> --event <type> [--name <name>] [--file <file>]` -- called by hooks
+- `agentping list [--json]` -- list active sessions (for scripting)
+- `agentping status` -- one-line summary (e.g., "3 running, 1 needs input")
 
 ## Window Jumping
 

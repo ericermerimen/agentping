@@ -14,6 +14,8 @@
     <string>com.agentping.app</string>
     <key>CFBundleVersion</key>
     <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
     <key>NSAccessibilityUsageDescription</key>
     <string>AgentPing needs accessibility access to focus terminal windows when you click on a session.</string>
 </dict>

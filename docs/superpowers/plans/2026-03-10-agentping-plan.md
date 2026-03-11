@@ -1,4 +1,4 @@
-# AgentsHub Implementation Plan
+# AgentPing Implementation Plan
 
 > **For agentic workers:** REQUIRED: Use superpowers:subagent-driven-development (if subagents available) or superpowers:executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** Swift, SwiftUI, SwiftPM, NSStatusItem, FSEvents, Accessibility API, UserNotifications
 
-**Spec:** `docs/superpowers/specs/2026-03-10-agentshub-design.md`
+**Spec:** `docs/superpowers/specs/2026-03-10-agentping-design.md`
 
 ---
 
@@ -18,8 +18,8 @@
 
 **Files:**
 - Create: `Package.swift`
-- Create: `Sources/AgentsHub/AgentsHubApp.swift`
-- Create: `Sources/AgentsHubCLI/main.swift`
+- Create: `Sources/AgentPing/AgentPingApp.swift`
+- Create: `Sources/AgentPingCLI/main.swift`
 
 - [ ] **Step 1: Create Package.swift with two targets**
 
@@ -28,32 +28,32 @@
 import PackageDescription
 
 let package = Package(
-    name: "AgentsHub",
+    name: "AgentPing",
     platforms: [.macOS(.v14)],
     products: [
-        .executable(name: "AgentsHub", targets: ["AgentsHub"]),
-        .executable(name: "agentshub", targets: ["AgentsHubCLI"]),
+        .executable(name: "AgentPing", targets: ["AgentPing"]),
+        .executable(name: "agentping", targets: ["AgentPingCLI"]),
     ],
     dependencies: [],
     targets: [
         .executableTarget(
-            name: "AgentsHub",
-            dependencies: ["AgentsHubCore"],
-            path: "Sources/AgentsHub"
+            name: "AgentPing",
+            dependencies: ["AgentPingCore"],
+            path: "Sources/AgentPing"
         ),
         .executableTarget(
-            name: "AgentsHubCLI",
-            dependencies: ["AgentsHubCore"],
-            path: "Sources/AgentsHubCLI"
+            name: "AgentPingCLI",
+            dependencies: ["AgentPingCore"],
+            path: "Sources/AgentPingCLI"
         ),
         .target(
-            name: "AgentsHubCore",
-            path: "Sources/AgentsHubCore"
+            name: "AgentPingCore",
+            path: "Sources/AgentPingCore"
         ),
         .testTarget(
-            name: "AgentsHubCoreTests",
-            dependencies: ["AgentsHubCore"],
-            path: "Tests/AgentsHubCoreTests"
+            name: "AgentPingCoreTests",
+            dependencies: ["AgentPingCore"],
+            path: "Tests/AgentPingCoreTests"
         ),
     ]
 )
@@ -62,14 +62,14 @@ let package = Package(
 - [ ] **Step 2: Create minimal app entry point**
 
 ```swift
-// Sources/AgentsHub/AgentsHubApp.swift
+// Sources/AgentPing/AgentPingApp.swift
 import SwiftUI
 
 @main
-struct AgentsHubApp: App {
+struct AgentPingApp: App {
     var body: some Scene {
-        MenuBarExtra("AgentsHub", systemImage: "circle.grid.2x2") {
-            Text("AgentsHub running")
+        MenuBarExtra("AgentPing", systemImage: "circle.grid.2x2") {
+            Text("AgentPing running")
         }
         Settings {
             Text("Preferences")
@@ -81,23 +81,23 @@ struct AgentsHubApp: App {
 - [ ] **Step 3: Create minimal CLI entry point**
 
 ```swift
-// Sources/AgentsHubCLI/main.swift
+// Sources/AgentPingCLI/main.swift
 import Foundation
-import AgentsHubCore
+import AgentPingCore
 
-print("agentshub CLI")
+print("agentping CLI")
 ```
 
-- [ ] **Step 4: Create AgentsHubCore placeholder**
+- [ ] **Step 4: Create AgentPingCore placeholder**
 
 ```swift
-// Sources/AgentsHubCore/AgentsHubCore.swift
+// Sources/AgentPingCore/AgentPingCore.swift
 import Foundation
 ```
 
 - [ ] **Step 5: Verify it builds**
 
-Run: `cd /Users/eric.er/agentshub && swift build`
+Run: `cd /Users/eric.er/agentping && swift build`
 Expected: Build succeeds with no errors
 
 - [ ] **Step 6: Commit**
@@ -112,15 +112,15 @@ git commit -m "feat: initialize Swift package with app, CLI, and core targets"
 ### Task 2: Session Model
 
 **Files:**
-- Create: `Sources/AgentsHubCore/Models/Session.swift`
-- Create: `Tests/AgentsHubCoreTests/SessionTests.swift`
+- Create: `Sources/AgentPingCore/Models/Session.swift`
+- Create: `Tests/AgentPingCoreTests/SessionTests.swift`
 
 - [ ] **Step 1: Write failing test for Session model**
 
 ```swift
-// Tests/AgentsHubCoreTests/SessionTests.swift
+// Tests/AgentPingCoreTests/SessionTests.swift
 import XCTest
-@testable import AgentsHubCore
+@testable import AgentPingCore
 
 final class SessionTests: XCTestCase {
     func testSessionDecoding() throws {
@@ -138,7 +138,7 @@ final class SessionTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
-        let session = try JSONDecoder.agentsHub.decode(Session.self, from: json)
+        let session = try JSONDecoder.agentPing.decode(Session.self, from: json)
         XCTAssertEqual(session.id, "session-abc123")
         XCTAssertEqual(session.name, "Backend Refactor")
         XCTAssertEqual(session.status, .running)
@@ -159,8 +159,8 @@ final class SessionTests: XCTestCase {
             lastEventAt: Date(),
             notifications: true
         )
-        let data = try JSONEncoder.agentsHub.encode(session)
-        let decoded = try JSONDecoder.agentsHub.decode(Session.self, from: data)
+        let data = try JSONEncoder.agentPing.encode(session)
+        let decoded = try JSONDecoder.agentPing.decode(Session.self, from: data)
         XCTAssertEqual(decoded.id, session.id)
         XCTAssertEqual(decoded.status, .running)
     }
@@ -176,13 +176,13 @@ final class SessionTests: XCTestCase {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/eric.er/agentshub && swift test`
+Run: `cd /Users/eric.er/agentping && swift test`
 Expected: FAIL -- Session type not found
 
 - [ ] **Step 3: Implement Session model**
 
 ```swift
-// Sources/AgentsHubCore/Models/Session.swift
+// Sources/AgentPingCore/Models/Session.swift
 import Foundation
 
 public enum SessionStatus: String, Codable, CaseIterable {
@@ -238,7 +238,7 @@ public struct Session: Codable, Identifiable, Equatable {
 }
 
 extension JSONDecoder {
-    public static let agentsHub: JSONDecoder = {
+    public static let agentPing: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return decoder
@@ -246,7 +246,7 @@ extension JSONDecoder {
 }
 
 extension JSONEncoder {
-    public static let agentsHub: JSONEncoder = {
+    public static let agentPing: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -257,13 +257,13 @@ extension JSONEncoder {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/eric.er/agentshub && swift test`
+Run: `cd /Users/eric.er/agentping && swift test`
 Expected: All 3 tests PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/AgentsHubCore/Models/ Tests/
+git add Sources/AgentPingCore/Models/ Tests/
 git commit -m "feat: add Session model with JSON coding and status enum"
 ```
 
@@ -272,15 +272,15 @@ git commit -m "feat: add Session model with JSON coding and status enum"
 ### Task 3: Session Store (file-based persistence)
 
 **Files:**
-- Create: `Sources/AgentsHubCore/Store/SessionStore.swift`
-- Create: `Tests/AgentsHubCoreTests/SessionStoreTests.swift`
+- Create: `Sources/AgentPingCore/Store/SessionStore.swift`
+- Create: `Tests/AgentPingCoreTests/SessionStoreTests.swift`
 
 - [ ] **Step 1: Write failing tests for SessionStore**
 
 ```swift
-// Tests/AgentsHubCoreTests/SessionStoreTests.swift
+// Tests/AgentPingCoreTests/SessionStoreTests.swift
 import XCTest
-@testable import AgentsHubCore
+@testable import AgentPingCore
 
 final class SessionStoreTests: XCTestCase {
     var store: SessionStore!
@@ -288,7 +288,7 @@ final class SessionStoreTests: XCTestCase {
 
     override func setUp() {
         tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("agentshub-test-\(UUID().uuidString)")
+            .appendingPathComponent("agentping-test-\(UUID().uuidString)")
         store = SessionStore(directory: tempDir)
     }
 
@@ -350,13 +350,13 @@ final class SessionStoreTests: XCTestCase {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/eric.er/agentshub && swift test`
+Run: `cd /Users/eric.er/agentping && swift test`
 Expected: FAIL -- SessionStore not found
 
 - [ ] **Step 3: Implement SessionStore**
 
 ```swift
-// Sources/AgentsHubCore/Store/SessionStore.swift
+// Sources/AgentPingCore/Store/SessionStore.swift
 import Foundation
 
 public final class SessionStore {
@@ -364,7 +364,7 @@ public final class SessionStore {
 
     public init(directory: URL? = nil) {
         self.directory = directory ?? FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".agentshub/sessions")
+            .appendingPathComponent(".agentping/sessions")
     }
 
     private func filePath(for id: String) -> URL {
@@ -379,7 +379,7 @@ public final class SessionStore {
 
     public func write(_ session: Session) throws {
         try ensureDirectory()
-        let data = try JSONEncoder.agentsHub.encode(session)
+        let data = try JSONEncoder.agentPing.encode(session)
         try data.write(to: filePath(for: session.id), options: .atomic)
     }
 
@@ -387,7 +387,7 @@ public final class SessionStore {
         let path = filePath(for: id)
         guard FileManager.default.fileExists(atPath: path.path) else { return nil }
         let data = try Data(contentsOf: path)
-        return try JSONDecoder.agentsHub.decode(Session.self, from: data)
+        return try JSONDecoder.agentPing.decode(Session.self, from: data)
     }
 
     public func listAll() throws -> [Session] {
@@ -396,7 +396,7 @@ public final class SessionStore {
             .filter { $0.pathExtension == "json" }
         return try files.compactMap { url in
             let data = try Data(contentsOf: url)
-            return try? JSONDecoder.agentsHub.decode(Session.self, from: data)
+            return try? JSONDecoder.agentPing.decode(Session.self, from: data)
         }
     }
 
@@ -422,13 +422,13 @@ public final class SessionStore {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/eric.er/agentshub && swift test`
+Run: `cd /Users/eric.er/agentping && swift test`
 Expected: All SessionStore tests PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/AgentsHubCore/Store/ Tests/
+git add Sources/AgentPingCore/Store/ Tests/
 git commit -m "feat: add SessionStore for file-based session persistence"
 ```
 
@@ -439,15 +439,15 @@ git commit -m "feat: add SessionStore for file-based session persistence"
 ### Task 4: Process Scanner
 
 **Files:**
-- Create: `Sources/AgentsHubCore/Scanner/ProcessScanner.swift`
-- Create: `Tests/AgentsHubCoreTests/ProcessScannerTests.swift`
+- Create: `Sources/AgentPingCore/Scanner/ProcessScanner.swift`
+- Create: `Tests/AgentPingCoreTests/ProcessScannerTests.swift`
 
 - [ ] **Step 1: Write test for process info parsing**
 
 ```swift
-// Tests/AgentsHubCoreTests/ProcessScannerTests.swift
+// Tests/AgentPingCoreTests/ProcessScannerTests.swift
 import XCTest
-@testable import AgentsHubCore
+@testable import AgentPingCore
 
 final class ProcessScannerTests: XCTestCase {
     func testParseProcessInfo() {
@@ -476,13 +476,13 @@ final class ProcessScannerTests: XCTestCase {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/eric.er/agentshub && swift test`
+Run: `cd /Users/eric.er/agentping && swift test`
 Expected: FAIL -- ProcessInfo, ProcessScanner not found
 
 - [ ] **Step 3: Implement ProcessScanner**
 
 ```swift
-// Sources/AgentsHubCore/Scanner/ProcessScanner.swift
+// Sources/AgentPingCore/Scanner/ProcessScanner.swift
 import Foundation
 
 public struct ProcessInfo {
@@ -579,13 +579,13 @@ public final class ProcessScanner {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/eric.er/agentshub && swift test`
+Run: `cd /Users/eric.er/agentping && swift test`
 Expected: All ProcessScanner tests PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/AgentsHubCore/Scanner/ Tests/
+git add Sources/AgentPingCore/Scanner/ Tests/
 git commit -m "feat: add ProcessScanner for discovering claude processes"
 ```
 
@@ -594,15 +594,15 @@ git commit -m "feat: add ProcessScanner for discovering claude processes"
 ### Task 5: SessionManager (state coordination)
 
 **Files:**
-- Create: `Sources/AgentsHubCore/Manager/SessionManager.swift`
-- Create: `Tests/AgentsHubCoreTests/SessionManagerTests.swift`
+- Create: `Sources/AgentPingCore/Manager/SessionManager.swift`
+- Create: `Tests/AgentPingCoreTests/SessionManagerTests.swift`
 
 - [ ] **Step 1: Write failing tests for SessionManager**
 
 ```swift
-// Tests/AgentsHubCoreTests/SessionManagerTests.swift
+// Tests/AgentPingCoreTests/SessionManagerTests.swift
 import XCTest
-@testable import AgentsHubCore
+@testable import AgentPingCore
 
 final class SessionManagerTests: XCTestCase {
     var manager: SessionManager!
@@ -611,7 +611,7 @@ final class SessionManagerTests: XCTestCase {
 
     override func setUp() {
         tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("agentshub-mgr-\(UUID().uuidString)")
+            .appendingPathComponent("agentping-mgr-\(UUID().uuidString)")
         store = SessionStore(directory: tempDir)
         manager = SessionManager(store: store)
     }
@@ -680,13 +680,13 @@ final class SessionManagerTests: XCTestCase {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/eric.er/agentshub && swift test`
+Run: `cd /Users/eric.er/agentping && swift test`
 Expected: FAIL -- SessionManager not found
 
 - [ ] **Step 3: Implement SessionManager**
 
 ```swift
-// Sources/AgentsHubCore/Manager/SessionManager.swift
+// Sources/AgentPingCore/Manager/SessionManager.swift
 import Foundation
 import Combine
 
@@ -742,13 +742,13 @@ public final class SessionManager: ObservableObject {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/eric.er/agentshub && swift test`
+Run: `cd /Users/eric.er/agentping && swift test`
 Expected: All SessionManager tests PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add Sources/AgentsHubCore/Manager/ Tests/
+git add Sources/AgentPingCore/Manager/ Tests/
 git commit -m "feat: add SessionManager for state coordination"
 ```
 
@@ -759,9 +759,9 @@ git commit -m "feat: add SessionManager for state coordination"
 ### Task 6: CLI Report Command
 
 **Files:**
-- Create: `Sources/AgentsHubCore/CLI/ReportCommand.swift`
-- Modify: `Sources/AgentsHubCLI/main.swift`
-- Create: `Tests/AgentsHubCoreTests/ReportCommandTests.swift`
+- Create: `Sources/AgentPingCore/CLI/ReportCommand.swift`
+- Modify: `Sources/AgentPingCLI/main.swift`
+- Create: `Tests/AgentPingCoreTests/ReportCommandTests.swift`
 
 - [ ] **Step 1: Add ArgumentParser dependency to Package.swift**
 
@@ -770,12 +770,12 @@ Add to dependencies:
 .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
 ```
 
-Add to AgentsHubCLI target dependencies:
+Add to AgentPingCLI target dependencies:
 ```swift
 .product(name: "ArgumentParser", package: "swift-argument-parser"),
 ```
 
-Add to AgentsHubCore target dependencies:
+Add to AgentPingCore target dependencies:
 ```swift
 .product(name: "ArgumentParser", package: "swift-argument-parser"),
 ```
@@ -783,9 +783,9 @@ Add to AgentsHubCore target dependencies:
 - [ ] **Step 2: Write failing test for report command logic**
 
 ```swift
-// Tests/AgentsHubCoreTests/ReportCommandTests.swift
+// Tests/AgentPingCoreTests/ReportCommandTests.swift
 import XCTest
-@testable import AgentsHubCore
+@testable import AgentPingCore
 
 final class ReportCommandTests: XCTestCase {
     var store: SessionStore!
@@ -793,7 +793,7 @@ final class ReportCommandTests: XCTestCase {
 
     override func setUp() {
         tempDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("agentshub-cli-\(UUID().uuidString)")
+            .appendingPathComponent("agentping-cli-\(UUID().uuidString)")
         store = SessionStore(directory: tempDir)
     }
 
@@ -840,13 +840,13 @@ final class ReportCommandTests: XCTestCase {
 
 - [ ] **Step 3: Run tests to verify they fail**
 
-Run: `cd /Users/eric.er/agentshub && swift test`
+Run: `cd /Users/eric.er/agentping && swift test`
 Expected: FAIL -- ReportHandler not found
 
 - [ ] **Step 4: Implement ReportHandler**
 
 ```swift
-// Sources/AgentsHubCore/CLI/ReportHandler.swift
+// Sources/AgentPingCore/CLI/ReportHandler.swift
 import Foundation
 
 public final class ReportHandler {
@@ -891,20 +891,20 @@ public final class ReportHandler {
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `cd /Users/eric.er/agentshub && swift test`
+Run: `cd /Users/eric.er/agentping && swift test`
 Expected: All ReportCommand tests PASS
 
 - [ ] **Step 6: Wire up CLI main with ArgumentParser**
 
 ```swift
-// Sources/AgentsHubCLI/main.swift
+// Sources/AgentPingCLI/main.swift
 import ArgumentParser
-import AgentsHubCore
+import AgentPingCore
 
-struct AgentsHubCommand: ParsableCommand {
+struct AgentPingCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "agentshub",
-        abstract: "AgentsHub CLI - manage Claude Code sessions",
+        commandName: "agentping",
+        abstract: "AgentPing CLI - manage Claude Code sessions",
         subcommands: [Report.self, List.self, Status.self]
     )
 }
@@ -941,7 +941,7 @@ struct List: ParsableCommand {
         let sessions = try store.listAll()
 
         if json {
-            let data = try JSONEncoder.agentsHub.encode(sessions)
+            let data = try JSONEncoder.agentPing.encode(sessions)
             print(String(data: data, encoding: .utf8) ?? "[]")
         } else {
             for s in sessions {
@@ -966,18 +966,18 @@ struct Status: ParsableCommand {
     }
 }
 
-AgentsHubCommand.main()
+AgentPingCommand.main()
 ```
 
 - [ ] **Step 7: Verify CLI builds and runs**
 
-Run: `cd /Users/eric.er/agentshub && swift build && .build/debug/agentshub --help`
+Run: `cd /Users/eric.er/agentping && swift build && .build/debug/agentping --help`
 Expected: Shows help text with report, list, status subcommands
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add Package.swift Sources/AgentsHubCore/CLI/ Sources/AgentsHubCLI/ Tests/
+git add Package.swift Sources/AgentPingCore/CLI/ Sources/AgentPingCLI/ Tests/
 git commit -m "feat: add CLI tool with report, list, and status commands"
 ```
 
@@ -988,16 +988,16 @@ git commit -m "feat: add CLI tool with report, list, and status commands"
 ### Task 7: Menu Bar Icon with Badge
 
 **Files:**
-- Modify: `Sources/AgentsHub/AgentsHubApp.swift`
-- Create: `Sources/AgentsHub/Views/StatusItemController.swift`
+- Modify: `Sources/AgentPing/AgentPingApp.swift`
+- Create: `Sources/AgentPing/Views/StatusItemController.swift`
 
 - [ ] **Step 1: Implement StatusItemController with NSStatusItem**
 
 ```swift
-// Sources/AgentsHub/Views/StatusItemController.swift
+// Sources/AgentPing/Views/StatusItemController.swift
 import AppKit
 import SwiftUI
-import AgentsHubCore
+import AgentPingCore
 import Combine
 
 final class StatusItemController {
@@ -1015,7 +1015,7 @@ final class StatusItemController {
         )
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "circle.grid.2x2", accessibilityDescription: "AgentsHub")
+            button.image = NSImage(systemSymbolName: "circle.grid.2x2", accessibilityDescription: "AgentPing")
             button.action = #selector(togglePopover)
             button.target = self
         }
@@ -1039,7 +1039,7 @@ final class StatusItemController {
 
         // Use filled icon when sessions need input
         let symbolName = needsInput ? "circle.grid.2x2.fill" : "circle.grid.2x2"
-        button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "AgentsHub")
+        button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "AgentPing")
 
         // Red badge dot overlay via attributed title
         if needsInput {
@@ -1065,12 +1065,12 @@ final class StatusItemController {
 - [ ] **Step 2: Update app entry point to use controller**
 
 ```swift
-// Sources/AgentsHub/AgentsHubApp.swift
+// Sources/AgentPing/AgentPingApp.swift
 import SwiftUI
-import AgentsHubCore
+import AgentPingCore
 
 @main
-struct AgentsHubApp: App {
+struct AgentPingApp: App {
     @StateObject private var manager = SessionManager()
     @State private var controller: StatusItemController?
 
@@ -1110,13 +1110,13 @@ Note: The exact app lifecycle wiring may need adjustment between `@main` App pro
 
 - [ ] **Step 3: Verify it builds**
 
-Run: `cd /Users/eric.er/agentshub && swift build`
+Run: `cd /Users/eric.er/agentping && swift build`
 Expected: Builds successfully
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add Sources/AgentsHub/
+git add Sources/AgentPing/
 git commit -m "feat: add menu bar icon with active session count and needs-input badge"
 ```
 
@@ -1125,15 +1125,15 @@ git commit -m "feat: add menu bar icon with active session count and needs-input
 ### Task 8: Popover View
 
 **Files:**
-- Create: `Sources/AgentsHub/Views/PopoverView.swift`
-- Create: `Sources/AgentsHub/Views/SessionRowView.swift`
+- Create: `Sources/AgentPing/Views/PopoverView.swift`
+- Create: `Sources/AgentPing/Views/SessionRowView.swift`
 
 - [ ] **Step 1: Implement SessionRowView**
 
 ```swift
-// Sources/AgentsHub/Views/SessionRowView.swift
+// Sources/AgentPing/Views/SessionRowView.swift
 import SwiftUI
-import AgentsHubCore
+import AgentPingCore
 
 struct SessionRowView: View {
     let session: Session
@@ -1206,9 +1206,9 @@ struct SessionRowView: View {
 - [ ] **Step 2: Implement PopoverView**
 
 ```swift
-// Sources/AgentsHub/Views/PopoverView.swift
+// Sources/AgentPing/Views/PopoverView.swift
 import SwiftUI
-import AgentsHubCore
+import AgentPingCore
 
 enum SessionTab: String, CaseIterable {
     case running = "Running"
@@ -1223,7 +1223,7 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("AGENTSHUB")
+                Text("AGENTPING")
                     .font(.system(.headline, design: .monospaced, weight: .bold))
                 Spacer()
                 Text("\(manager.activeSessions.count) active")
@@ -1302,13 +1302,13 @@ struct PopoverView: View {
 
 - [ ] **Step 3: Verify it builds**
 
-Run: `cd /Users/eric.er/agentshub && swift build`
+Run: `cd /Users/eric.er/agentping && swift build`
 Expected: Builds successfully
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add Sources/AgentsHub/Views/
+git add Sources/AgentPing/Views/
 git commit -m "feat: add popover UI with session list, tabs, and compact rows"
 ```
 
@@ -1319,12 +1319,12 @@ git commit -m "feat: add popover UI with session list, tabs, and compact rows"
 ### Task 9: Window Jumping via Accessibility API
 
 **Files:**
-- Create: `Sources/AgentsHubCore/WindowJumper/WindowJumper.swift`
+- Create: `Sources/AgentPingCore/WindowJumper/WindowJumper.swift`
 
 - [ ] **Step 1: Implement WindowJumper**
 
 ```swift
-// Sources/AgentsHubCore/WindowJumper/WindowJumper.swift
+// Sources/AgentPingCore/WindowJumper/WindowJumper.swift
 import AppKit
 import ApplicationServices
 
@@ -1410,13 +1410,13 @@ private func jumpToWindow(session: Session) {
 
 - [ ] **Step 3: Verify it builds**
 
-Run: `cd /Users/eric.er/agentshub && swift build`
+Run: `cd /Users/eric.er/agentping && swift build`
 Expected: Builds (Accessibility API requires runtime permission, can't test in unit tests)
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add Sources/AgentsHubCore/WindowJumper/ Sources/AgentsHub/Views/PopoverView.swift
+git add Sources/AgentPingCore/WindowJumper/ Sources/AgentPing/Views/PopoverView.swift
 git commit -m "feat: add window jumping via Accessibility API"
 ```
 
@@ -1425,14 +1425,14 @@ git commit -m "feat: add window jumping via Accessibility API"
 ### Task 10: Notifications
 
 **Files:**
-- Create: `Sources/AgentsHub/Notifications/NotificationManager.swift`
+- Create: `Sources/AgentPing/Notifications/NotificationManager.swift`
 
 - [ ] **Step 1: Implement NotificationManager**
 
 ```swift
-// Sources/AgentsHub/Notifications/NotificationManager.swift
+// Sources/AgentPing/Notifications/NotificationManager.swift
 import UserNotifications
-import AgentsHubCore
+import AgentPingCore
 
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
@@ -1498,13 +1498,13 @@ NotificationManager.shared.setup { [weak self] sessionId in
 
 - [ ] **Step 3: Verify it builds**
 
-Run: `cd /Users/eric.er/agentshub && swift build`
+Run: `cd /Users/eric.er/agentping && swift build`
 Expected: Builds successfully
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add Sources/AgentsHub/Notifications/
+git add Sources/AgentPing/Notifications/
 git commit -m "feat: add macOS notifications for sessions needing input"
 ```
 
@@ -1515,12 +1515,12 @@ git commit -m "feat: add macOS notifications for sessions needing input"
 ### Task 11: FSEvents Directory Watcher
 
 **Files:**
-- Create: `Sources/AgentsHubCore/Watcher/DirectoryWatcher.swift`
+- Create: `Sources/AgentPingCore/Watcher/DirectoryWatcher.swift`
 
 - [ ] **Step 1: Implement DirectoryWatcher**
 
 ```swift
-// Sources/AgentsHubCore/Watcher/DirectoryWatcher.swift
+// Sources/AgentPingCore/Watcher/DirectoryWatcher.swift
 import Foundation
 
 public final class DirectoryWatcher {
@@ -1529,7 +1529,7 @@ public final class DirectoryWatcher {
     private let onChange: () -> Void
 
     public init(path: String? = nil, onChange: @escaping () -> Void) {
-        self.path = path ?? NSHomeDirectory() + "/.agentshub/sessions"
+        self.path = path ?? NSHomeDirectory() + "/.agentping/sessions"
         self.onChange = onChange
     }
 
@@ -1573,13 +1573,13 @@ Wire DirectoryWatcher to call `manager.reload()` on changes.
 
 - [ ] **Step 3: Verify it builds**
 
-Run: `cd /Users/eric.er/agentshub && swift build`
+Run: `cd /Users/eric.er/agentping && swift build`
 Expected: Builds successfully
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add Sources/AgentsHubCore/Watcher/
+git add Sources/AgentPingCore/Watcher/
 git commit -m "feat: add FSEvents directory watcher for live session updates"
 ```
 
@@ -1588,12 +1588,12 @@ git commit -m "feat: add FSEvents directory watcher for live session updates"
 ### Task 12: Preferences Window
 
 **Files:**
-- Create: `Sources/AgentsHub/Views/PreferencesView.swift`
+- Create: `Sources/AgentPing/Views/PreferencesView.swift`
 
 - [ ] **Step 1: Implement PreferencesView**
 
 ```swift
-// Sources/AgentsHub/Views/PreferencesView.swift
+// Sources/AgentPing/Views/PreferencesView.swift
 import SwiftUI
 import ServiceManagement
 
@@ -1651,9 +1651,9 @@ struct PreferencesView: View {
         let config = """
         {
           "hooks": {
-            "PostToolUse": [{"command": "agentshub report --session $CLAUDE_SESSION_ID --event tool-use"}],
-            "Stop": [{"command": "agentshub report --session $CLAUDE_SESSION_ID --event stopped"}],
-            "Notification": [{"command": "agentshub report --session $CLAUDE_SESSION_ID --event needs-input"}]
+            "PostToolUse": [{"command": "agentping report --session $CLAUDE_SESSION_ID --event tool-use"}],
+            "Stop": [{"command": "agentping report --session $CLAUDE_SESSION_ID --event stopped"}],
+            "Notification": [{"command": "agentping report --session $CLAUDE_SESSION_ID --event needs-input"}]
           }
         }
         """
@@ -1665,13 +1665,13 @@ struct PreferencesView: View {
 
 - [ ] **Step 2: Verify it builds**
 
-Run: `cd /Users/eric.er/agentshub && swift build`
+Run: `cd /Users/eric.er/agentping && swift build`
 Expected: Builds successfully
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add Sources/AgentsHub/Views/PreferencesView.swift
+git add Sources/AgentPing/Views/PreferencesView.swift
 git commit -m "feat: add preferences window with launch-at-login, notifications, and hook helper"
 ```
 
@@ -1682,7 +1682,7 @@ git commit -m "feat: add preferences window with launch-at-login, notifications,
 ### Task 13: Wire Everything Together in AppDelegate
 
 **Files:**
-- Modify: `Sources/AgentsHub/AgentsHubApp.swift`
+- Modify: `Sources/AgentPing/AgentPingApp.swift`
 
 - [ ] **Step 1: Finalize AppDelegate wiring**
 
@@ -1697,22 +1697,22 @@ The app should:
 - Start with no dock icon (`NSApplication.shared.setActivationPolicy(.accessory)`)
 - Show menu bar icon immediately
 - Begin scanning for sessions
-- Watch `~/.agentshub/sessions/` for hook updates
+- Watch `~/.agentping/sessions/` for hook updates
 
 - [ ] **Step 2: Test manually**
 
-Run: `cd /Users/eric.er/agentshub && swift build && .build/debug/AgentsHub`
+Run: `cd /Users/eric.er/agentping && swift build && .build/debug/AgentPing`
 Expected: Menu bar icon appears, popover opens on click, shows empty state
 
 - [ ] **Step 3: Test with CLI**
 
-Run: `.build/debug/agentshub report --session test-1 --event tool-use --name "Test Session"`
+Run: `.build/debug/agentping report --session test-1 --event tool-use --name "Test Session"`
 Expected: Session appears in popover within seconds
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add Sources/AgentsHub/
+git add Sources/AgentPing/
 git commit -m "feat: wire all components together in app lifecycle"
 ```
 
@@ -1721,7 +1721,7 @@ git commit -m "feat: wire all components together in app lifecycle"
 ### Task 14: Info.plist and App Configuration
 
 **Files:**
-- Create: `Sources/AgentsHub/Info.plist`
+- Create: `Sources/AgentPing/Info.plist`
 
 - [ ] **Step 1: Create Info.plist for LSUIElement (no dock icon)**
 
@@ -1733,13 +1733,13 @@ git commit -m "feat: wire all components together in app lifecycle"
     <key>LSUIElement</key>
     <true/>
     <key>CFBundleName</key>
-    <string>AgentsHub</string>
+    <string>AgentPing</string>
     <key>CFBundleIdentifier</key>
-    <string>com.agentshub.app</string>
+    <string>com.agentping.app</string>
     <key>CFBundleVersion</key>
     <string>1.0.0</string>
     <key>NSAccessibilityUsageDescription</key>
-    <string>AgentsHub needs accessibility access to focus terminal windows when you click on a session.</string>
+    <string>AgentPing needs accessibility access to focus terminal windows when you click on a session.</string>
 </dict>
 </plist>
 ```
@@ -1747,7 +1747,7 @@ git commit -m "feat: wire all components together in app lifecycle"
 - [ ] **Step 2: Commit**
 
 ```bash
-git add Sources/AgentsHub/Info.plist
+git add Sources/AgentPing/Info.plist
 git commit -m "feat: add Info.plist with LSUIElement and accessibility usage description"
 ```
 
