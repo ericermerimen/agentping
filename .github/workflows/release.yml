@@ -96,13 +96,14 @@ jobs:
             end
 
             def post_install
-              system "rm", "-rf", "/Applications/AgentPing.app"
-              system "cp", "-pR", "#{prefix}/AgentPing.app", "/Applications/AgentPing.app"
+              ohai "Linking AgentPing.app to /Applications..."
+              system "ln", "-sf", "#{prefix}/AgentPing.app", "#{ENV["HOME"]}/Applications/AgentPing.app" if Dir.exist?("#{ENV["HOME"]}/Applications")
             end
 
             def caveats
               <<~EOS
-                AgentPing.app has been copied to /Applications.
+                To add AgentPing to /Applications, run:
+                  sudo cp -pR #{opt_prefix}/AgentPing.app /Applications/
 
                 To set up Claude Code hooks, open AgentPing preferences
                 and click "Copy Hook Config to Clipboard", then paste
