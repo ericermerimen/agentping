@@ -2,6 +2,46 @@ import Foundation
 import ArgumentParser
 import AgentPingCore
 
+/// Lightweight HTTP client for talking to the AgentPing API server.
+enum APIClient {
+    static let timeout: TimeInterval = 2.0
+
+    /// Try to reach the local API server. Returns (data, statusCode) or nil if unreachable.
+    static func request(_ method: String, _ path: String, body: Data? = nil) -> (Data, Int)? {
+        let port = APIServer.readPort() ?? 19199
+        guard let url = URL(string: "http://127.0.0.1:\(port)/\(path)") else { return nil }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = method
+        req.httpBody = body
+        req.timeoutInterval = timeout
+        if body != nil {
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: (Data, Int)?
+
+        URLSession.shared.dataTask(with: req) { data, response, error in
+            defer { semaphore.signal() }
+            guard error == nil,
+                  let data,
+                  let httpResponse = response as? HTTPURLResponse else { return }
+            result = (data, httpResponse.statusCode)
+        }.resume()
+
+        semaphore.wait()
+        return result
+    }
+
+    /// POST a report to the API. Returns true if successful.
+    static func report(_ payload: [String: Any]) -> Bool {
+        guard let body = try? JSONSerialization.data(withJSONObject: payload) else { return false }
+        guard let (_, status) = request("POST", "v1/report", body: body) else { return false }
+        return status == 200
+    }
+}
+
 struct AgentPingCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "agentping",
@@ -62,6 +102,24 @@ struct Report: ParsableCommand {
         guard let sessionId = session ?? stdin?.session_id else {
             throw ValidationError("Session ID is required via --session or stdin JSON")
         }
+
+        // Build API payload
+        var payload: [String: Any] = [
+            "session_id": sessionId,
+            "event": event,
+        ]
+        if let name { payload["name"] = name }
+        if let file { payload["file"] = file }
+        if let cwd = stdin?.cwd { payload["cwd"] = cwd }
+        if let transcriptPath = stdin?.transcript_path { payload["transcript_path"] = transcriptPath }
+        if let app = Self.detectApp() { payload["app"] = app }
+
+        // Try HTTP API first
+        if APIClient.report(payload) {
+            return
+        }
+
+        // Fallback to direct file write
         let handler = ReportHandler()
         try handler.handle(
             sessionId: sessionId,
@@ -82,9 +140,26 @@ struct List: ParsableCommand {
     var json = false
 
     func run() throws {
+        // Try HTTP API first
+        if let (data, status) = APIClient.request("GET", "v1/sessions"), status == 200 {
+            if json {
+                print(String(data: data, encoding: .utf8) ?? "[]")
+            } else {
+                let sessions = try JSONDecoder.agentPing.decode([Session].self, from: data)
+                for s in sessions {
+                    let name = s.name ?? "unnamed"
+                    let app = s.app ?? "unknown"
+                    let model = [s.provider, s.model].compactMap { $0 }.joined(separator: " ")
+                    let modelSuffix = model.isEmpty ? "" : " [\(model)]"
+                    print("[\(s.status.rawValue)] \(name) (\(app))\(modelSuffix)")
+                }
+            }
+            return
+        }
+
+        // Fallback to direct file read
         let store = SessionStore()
         let sessions = try store.listAll()
-
         if json {
             let data = try JSONEncoder.agentPing.encode(sessions)
             print(String(data: data, encoding: .utf8) ?? "[]")
@@ -102,8 +177,15 @@ struct Status: ParsableCommand {
     static let configuration = CommandConfiguration(abstract: "One-line status summary")
 
     func run() throws {
-        let store = SessionStore()
-        let sessions = try store.listAll()
+        let sessions: [Session]
+
+        if let (data, status) = APIClient.request("GET", "v1/sessions"), status == 200,
+           let decoded = try? JSONDecoder.agentPing.decode([Session].self, from: data) {
+            sessions = decoded
+        } else {
+            sessions = try SessionStore().listAll()
+        }
+
         let running = sessions.filter { $0.status == .running }.count
         let needsInput = sessions.filter { $0.status == .needsInput }.count
         let idle = sessions.filter { $0.status == .idle }.count
@@ -142,6 +224,14 @@ struct Delete: ParsableCommand {
     var sessionId: String
 
     func run() throws {
+        if let (_, status) = APIClient.request("DELETE", "v1/sessions/\(sessionId)") {
+            if status == 204 || status == 200 {
+                print("Deleted session \(sessionId)")
+                return
+            }
+        }
+
+        // Fallback
         let store = SessionStore()
         try store.delete(id: sessionId)
         print("Deleted session \(sessionId)")
