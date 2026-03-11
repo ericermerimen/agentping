@@ -7,6 +7,7 @@ struct PreferencesView: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("scanInterval") private var scanInterval = 10.0
     @AppStorage("costTrackingEnabled") private var costTrackingEnabled = false
+    @AppStorage("apiPort") private var apiPort = 19199
 
     var body: some View {
         Form {
@@ -41,6 +42,23 @@ struct PreferencesView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("API") {
+                HStack {
+                    Text("Port")
+                    TextField("Port", value: $apiPort, format: .number)
+                        .frame(width: 80)
+                        .textFieldStyle(.roundedBorder)
+                        .onChange(of: apiPort) { _, newValue in
+                            // Clamp to valid port range
+                            if newValue < 1024 { apiPort = 1024 }
+                            if newValue > 65535 { apiPort = 65535 }
+                        }
+                }
+                Text("API server runs on localhost:\(apiPort). Restart app after changing port.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Hooks") {
                 Text("Add these hooks to ~/.claude/settings.json to enable rich session tracking:")
                     .font(.caption)
@@ -52,7 +70,7 @@ struct PreferencesView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 400, height: 360)
+        .frame(width: 400, height: 440)
     }
 
     private func copyHookConfig() {
