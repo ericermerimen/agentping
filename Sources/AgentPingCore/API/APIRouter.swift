@@ -39,6 +39,10 @@ public final class APIRouter {
         if cleanPath.hasPrefix("/v1/sessions/") {
             let id = String(cleanPath.dropFirst("/v1/sessions/".count))
             guard !id.isEmpty else { return .notFound }
+            // Reject IDs with path traversal characters
+            guard !id.contains("/"), !id.contains("\\"), !id.contains("..") else {
+                return .error(400, "Bad Request", "session ID contains invalid characters")
+            }
             switch request.method {
             case .GET:    return handleGetSession(id: id)
             case .DELETE: return handleDeleteSession(id: id)
@@ -63,6 +67,10 @@ public final class APIRouter {
 
         guard let sessionId = json["session_id"] as? String, !sessionId.isEmpty else {
             return .error(400, "Bad Request", "session_id is required")
+        }
+        // Reject session IDs with path traversal characters
+        guard !sessionId.contains("/"), !sessionId.contains("\\"), !sessionId.contains("..") else {
+            return .error(400, "Bad Request", "session_id contains invalid characters")
         }
         guard let event = json["event"] as? String, !event.isEmpty else {
             return .error(400, "Bad Request", "event is required")

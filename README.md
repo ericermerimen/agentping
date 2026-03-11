@@ -17,8 +17,11 @@ A macOS menu bar app that monitors your Claude Code sessions, shows their status
 - **Auto-purge** -- finished sessions older than 24h are cleaned up automatically
 - **Search** -- filter sessions by name, project, or task
 - **CLI tool** (`agentping`) for scripting and Claude Code hook integration
+- **HTTP API** -- localhost REST API (port 19199) for third-party tool integration
+- **Provider/model tracking** -- auto-extracted from Claude transcripts, settable via API for other tools
+- **Session hover preview** -- hover a session to see model, status, task, context, cost, and path
 - **FSEvents watcher** -- updates instantly when session state changes
-- **Preferences** -- launch at login, scan interval, notification controls
+- **Preferences** -- launch at login, scan interval, notification controls, API port
 
 ## Requirements
 
@@ -88,6 +91,31 @@ agentping clear --older-than 12  # hours
 agentping delete SESSION_ID
 ```
 
+## HTTP API
+
+When the app is running, a localhost HTTP API is available for any tool to report sessions:
+
+```bash
+# Report a session event
+curl -X POST http://localhost:19199/v1/report \
+  -H "Content-Type: application/json" \
+  -d '{"session_id":"my-session","event":"running","name":"My Task","provider":"Copilot","model":"GPT-4o"}'
+
+# List all sessions
+curl http://localhost:19199/v1/sessions
+
+# Get a single session
+curl http://localhost:19199/v1/sessions/my-session
+
+# Delete a session
+curl -X DELETE http://localhost:19199/v1/sessions/my-session
+
+# Health check
+curl http://localhost:19199/v1/health
+```
+
+The port is configurable in Preferences and written to `~/.agentping/port` for discovery. The CLI uses the API when the app is running, falling back to direct file writes when it's not.
+
 ## Claude Code Hook Setup
 
 AgentPing works best with Claude Code hooks. Open the app preferences and click **"Copy Hook Config to Clipboard"**, then paste into `~/.claude/settings.json`:
@@ -143,6 +171,8 @@ git push origin v0.1.0
 
 This builds a universal binary (arm64 + x86_64), packages the `.app`, publishes it as a GitHub Release, and automatically updates the Homebrew formula.
 
+Beta/RC tags (e.g. `v0.7.0-beta.1`) are published as prereleases and do not update the Homebrew formula.
+
 To enable automatic Homebrew tap updates, add a `TAP_TOKEN` secret to your repo (a personal access token with `repo` scope for `ericermerimen/homebrew-tap`).
 
 ## Architecture
@@ -168,8 +198,21 @@ Sources/
     ├── Scanner/ProcessScanner.swift
     ├── Watcher/DirectoryWatcher.swift
     ├── WindowJumper/WindowJumper.swift
-    └── CLI/ReportHandler.swift
+    ├── CLI/ReportHandler.swift
+    └── API/
+        ├── HTTPParser.swift
+        ├── APIRouter.swift
+        └── APIServer.swift
 ```
+
+## Security
+
+The HTTP API binds to **localhost only** and is unauthenticated. The threat model assumes trusted local processes -- any process running as the current user can interact with the API. This is consistent with similar developer tools (Docker Desktop, webpack-dev-server, etc.).
+
+- Session IDs are sanitized to prevent path traversal
+- "Open in Terminal" uses safe argument passing (no shell/AppleScript string interpolation)
+- Request size is capped at ~1MB; connections time out after 5 seconds
+- Session directory uses owner-only permissions (0700)
 
 ## Data Storage
 

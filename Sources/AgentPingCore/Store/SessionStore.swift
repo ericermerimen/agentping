@@ -9,7 +9,23 @@ public final class SessionStore {
     }
 
     private func filePath(for id: String) -> URL {
-        directory.appendingPathComponent("\(id).json")
+        directory.appendingPathComponent("\(Self.sanitizeId(id)).json")
+    }
+
+    /// Sanitize a session ID to prevent path traversal attacks.
+    /// Strips path separators and ".." segments so IDs always resolve within the sessions directory.
+    static func sanitizeId(_ id: String) -> String {
+        // Remove any path separator characters and null bytes
+        var clean = id.replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "\\", with: "_")
+            .replacingOccurrences(of: "\0", with: "")
+        // Collapse ".." to prevent traversal
+        while clean.contains("..") {
+            clean = clean.replacingOccurrences(of: "..", with: "_")
+        }
+        // Ensure non-empty
+        if clean.isEmpty { clean = "_invalid_" }
+        return clean
     }
 
     private func ensureDirectory() throws {

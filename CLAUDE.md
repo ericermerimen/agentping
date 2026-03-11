@@ -39,17 +39,34 @@ Sources/
     ├── Scanner/ProcessScanner.swift   # Detects running Claude processes via ps
     ├── Watcher/DirectoryWatcher.swift # FSEvents watcher for live updates
     ├── WindowJumper/WindowJumper.swift # Accessibility API window focus
-    └── CLI/ReportHandler.swift        # Processes hook events, reads transcripts
+    ├── CLI/ReportHandler.swift        # Processes hook events, reads transcripts
+    └── API/
+        ├── HTTPParser.swift           # Minimal HTTP/1.1 request/response parser
+        ├── APIRouter.swift            # REST route handling + input validation
+        └── APIServer.swift            # NWListener TCP server (localhost only)
 ```
 
 ## How it works
 
 1. Claude Code hooks call `agentping report --session ID --event TYPE` on each tool use, stop, and notification
-2. The CLI writes/updates a JSON file in `~/.agentping/sessions/<session-id>.json`
-3. `DirectoryWatcher` detects the file change via FSEvents
-4. `SessionManager.reload()` reads all session files
-5. The SwiftUI popover updates reactively via `@ObservedObject`
-6. Clicking a session uses `WindowJumper` (Accessibility API) to focus the right terminal window
+2. The CLI posts to the HTTP API (localhost:19199) or falls back to writing JSON files directly
+3. The app's embedded API server (`APIServer` + `APIRouter`) processes reports and writes session files
+4. `DirectoryWatcher` detects the file change via FSEvents
+5. `SessionManager.reload()` reads all session files
+6. The SwiftUI popover updates reactively via `@ObservedObject`
+7. Clicking a session uses `WindowJumper` (Accessibility API) to focus the right terminal window
+
+### HTTP API (v0.6.0+)
+
+The app embeds a localhost HTTP server (default port 19199, configurable in Preferences) for session reporting. Any local tool can integrate by posting to the API.
+
+- `POST /v1/report` -- create/update a session
+- `GET /v1/sessions` -- list all sessions (optional `?status=` filter)
+- `GET /v1/sessions/:id` -- get a single session
+- `DELETE /v1/sessions/:id` -- delete a session
+- `GET /v1/health` -- server health check
+
+Port is written to `~/.agentping/port` for discovery. CLI reads this file to find the running server.
 
 ## Key features
 
@@ -64,6 +81,9 @@ Sources/
 - **Cost tracking** -- optional per-session and total cost display
 - **Auto-purge** -- finished sessions older than 24h removed on launch
 - **CLI** -- `agentping list/status/report/clear/delete`
+- **HTTP API** -- localhost REST API for third-party tool integration (port 19199)
+- **Provider/model tracking** -- auto-extracted from Claude transcripts, manual via API for other tools
+- **Session hover preview** -- shows model, status, task, context, cost, path on hover
 
 ## GitHub repos
 
@@ -87,7 +107,9 @@ This triggers `.github/workflows/release.yml` which:
 2. Creates `.app` bundle via `Scripts/package_app.sh`
 3. Creates tarball with LICENSE (prevents Homebrew directory stripping)
 4. Publishes GitHub Release with SHA256 checksums
-5. Auto-updates `homebrew-tap` formula with new URL + SHA
+5. Auto-updates `homebrew-tap` formula with new URL + SHA (stable tags only)
+
+Beta/RC tags (`v0.X.0-beta.N`, `v0.X.0-rc.N`) are marked as prerelease and skip the Homebrew tap update.
 
 ## Marketing site
 
@@ -110,6 +132,19 @@ swift test               # Tests (requires Xcode toolchain for XCTest)
 ./Scripts/package_app.sh # Build .app bundle
 ./Scripts/install.sh     # Build + install to /Applications
 ```
+
+## Security model
+
+**Threat model: trusted local processes.** The HTTP API binds to localhost only (`acceptLocalOnly = true`) and has no authentication. Any process running as the current user can create, read, modify, or delete sessions. This is the same trust model as Docker Desktop, webpack-dev-server, and similar dev tools.
+
+Accepted risk: a malicious local process could forge session reports or delete sessions. This is low-impact (monitoring data only, no secrets) and adding auth would add friction for the primary use case (CLI hooks calling the API thousands of times per session).
+
+**Mitigations in place:**
+- **Path traversal**: Session IDs are sanitized in `SessionStore.sanitizeId()` (strips `/`, `\`, `..`, null bytes). API layer also rejects invalid IDs at the boundary before they reach the store.
+- **Command injection**: "Open in Terminal" uses `Process` + `open -a Terminal` with argument passing, not AppleScript string interpolation. Directory existence is validated before execution.
+- **Request size**: API server rejects requests >1MB+8KB.
+- **Connection timeout**: 5s timeout on incomplete requests.
+- **File permissions**: Session directory created with 0700 permissions.
 
 ## Known issues / notes
 

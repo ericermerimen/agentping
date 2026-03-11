@@ -413,17 +413,18 @@ struct PopoverView: View {
     }
 
     private func openTerminal(at path: String) {
-        let escaped = path.replacingOccurrences(of: "\"", with: "\\\"")
-        let script = """
-        tell application "Terminal"
-            do script "cd \\\"\(escaped)\\\""
-            activate
-        end tell
-        """
-        if let appleScript = NSAppleScript(source: script) {
-            var error: NSDictionary?
-            appleScript.executeAndReturnError(&error)
+        // Validate the path exists and is a directory before executing
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue else {
+            return
         }
+
+        // Use Process with open(1) to avoid all string interpolation injection risks.
+        // open -a Terminal <dir> opens a new Terminal window cd'd to the directory.
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-a", "Terminal", path]
+        try? process.run()
     }
 }
 
