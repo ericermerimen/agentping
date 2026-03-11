@@ -16,6 +16,21 @@ public final class WindowJumper {
         "com.github.wez.wezterm",
     ]
 
+    /// Map normalized app names (from ProcessScanner) to bundle identifiers
+    private static let appBundleIds: [String: [String]] = [
+        "vscode": ["com.microsoft.VSCode", "com.microsoft.VSCodeInsiders", "com.vscodium.VSCodium"],
+        "cursor": ["com.todesktop.230313mzl4w4u92"],
+        "windsurf": ["com.codeium.windsurf"],
+        "trae": ["com.trae.app"],
+        "zed": ["dev.zed.Zed"],
+        "ghostty": ["com.mitchellh.ghostty"],
+        "terminal": ["com.apple.Terminal"],
+        "iterm": ["com.googlecode.iterm2"],
+        "alacritty": ["io.alacritty"],
+        "kitty": ["net.kovidgoyal.kitty"],
+        "wezterm": ["com.github.wez.wezterm"],
+    ]
+
     /// Attempt to focus the window for a given session
     public func jumpTo(session: Session) -> Bool {
         // Strategy 1: Use app name + pid if available (original path)
@@ -24,6 +39,8 @@ public final class WindowJumper {
                 app.activate()
                 if let pid = session.pid {
                     raiseWindowForPid(pid, in: app)
+                } else if let cwd = session.cwd {
+                    raiseWindowByCwd(cwd, in: app)
                 }
                 return true
             }
@@ -58,10 +75,23 @@ public final class WindowJumper {
 
     private func findRunningApp(named appName: String) -> NSRunningApplication? {
         let apps = NSWorkspace.shared.runningApplications
+        let loweredName = appName.lowercased()
+
+        // First try matching by bundle identifier (most reliable)
+        if let bundleIds = Self.appBundleIds[loweredName] {
+            if let app = apps.first(where: { app in
+                guard let bundleId = app.bundleIdentifier else { return false }
+                return bundleIds.contains(bundleId)
+            }) {
+                return app
+            }
+        }
+
+        // Fall back to name matching
         return apps.first { runningApp in
             let name = runningApp.localizedName?.lowercased() ?? ""
-            return name.contains(appName) ||
-                   ProcessScanner.appNameMap.values.contains(where: { $0 == appName && name.contains($0) })
+            return name.contains(loweredName) ||
+                   ProcessScanner.appNameMap.values.contains(where: { $0 == loweredName && name.contains($0) })
         }
     }
 
@@ -136,6 +166,24 @@ public final class WindowJumper {
     /// Find any running terminal app as a last resort
     private func findAnyTerminalApp() -> NSRunningApplication? {
         return runningTerminalApps().first
+    }
+
+    /// Raise a window in the app whose title matches the cwd
+    private func raiseWindowByCwd(_ cwd: String, in app: NSRunningApplication) {
+        let dirName = URL(fileURLWithPath: cwd).lastPathComponent
+        let appRef = AXUIElementCreateApplication(app.processIdentifier)
+
+        var windowsRef: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &windowsRef) == .success,
+              let windows = windowsRef as? [AXUIElement] else { return }
+
+        for window in windows {
+            guard let title = windowTitle(window) else { continue }
+            if title.contains(cwd) || title.contains(dirName) {
+                AXUIElementPerformAction(window, kAXRaiseAction as CFString)
+                return
+            }
+        }
     }
 
     private func raiseWindowForPid(_ pid: Int, in app: NSRunningApplication) {
