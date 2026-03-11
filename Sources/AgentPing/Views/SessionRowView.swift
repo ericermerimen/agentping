@@ -13,7 +13,7 @@ struct SessionRowView: View {
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     private var isAttention: Bool {
-        session.status == .needsInput || session.status == .error || session.status == .idle
+        session.status == .needsInput || session.status == .error
     }
 
     var body: some View {
@@ -80,13 +80,13 @@ struct SessionRowView: View {
             }
 
             if session.status == .needsInput {
-                Text("Review")
+                Text("Waiting")
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(Color(.systemOrange))
             } else if session.status == .idle {
-                Text("Your turn")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color(.systemBlue))
+                Text(idleElapsed)
+                    .font(.system(size: 11).monospacedDigit())
+                    .foregroundStyle(.tertiary)
             } else if session.status == .error {
                 Text("Error")
                     .font(.system(size: 11, weight: .medium))
@@ -134,8 +134,6 @@ struct SessionRowView: View {
         Group {
             if session.status == .needsInput {
                 Color(.systemOrange).opacity(isHovered ? 0.12 : 0.06)
-            } else if session.status == .idle {
-                Color(.systemBlue).opacity(isHovered ? 0.12 : 0.05)
             } else if session.status == .error {
                 Color(.systemRed).opacity(isHovered ? 0.12 : 0.06)
             } else {
@@ -236,10 +234,22 @@ struct SessionRowView: View {
     }
 
     private var elapsedTime: String {
-        let total = max(0, Int(now.timeIntervalSince(session.startedAt)))
+        let total = max(0, Int(now.timeIntervalSince(session.lastEventAt)))
         let h = total / 3600, m = (total % 3600) / 60, s = total % 60
         return h > 0
             ? String(format: "%d:%02d:%02d", h, m, s)
             : String(format: "%02d:%02d", m, s)
+    }
+
+    private var idleElapsed: String {
+        let total = max(0, Int(now.timeIntervalSince(session.lastEventAt)))
+        let h = total / 3600, m = (total % 3600) / 60
+        if h > 0 {
+            return "idle \(h)h"
+        } else if m > 0 {
+            return "idle \(m)m"
+        } else {
+            return "idle"
+        }
     }
 }

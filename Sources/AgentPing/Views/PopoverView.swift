@@ -16,7 +16,7 @@ struct PopoverView: View {
     @State private var showSearch = false
 
     private var attentionCount: Int {
-        manager.sessions.filter { $0.status == .needsInput || $0.status == .idle }.count
+        manager.sessions.filter { $0.status == .needsInput || $0.status == .error }.count
     }
 
     var body: some View {
