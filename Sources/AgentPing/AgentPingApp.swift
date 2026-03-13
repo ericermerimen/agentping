@@ -80,6 +80,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Start periodic scan
         startPeriodicScan()
+
+        // Auto-check for updates on launch
+        if UserDefaults.standard.object(forKey: "checkForUpdatesAutomatically") == nil {
+            UserDefaults.standard.set(true, forKey: "checkForUpdatesAutomatically")
+        }
+        if UserDefaults.standard.bool(forKey: "checkForUpdatesAutomatically") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                UpdateChecker.shared.check()
+            }
+        }
     }
 
     private func updateIcon(sessions: [Session]) {
