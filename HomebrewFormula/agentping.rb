@@ -30,6 +30,11 @@ class Agentping < Formula
     EOS
   end
 
+  def post_install
+    # Kill any running AgentPing so brew services restart picks up the new binary
+    quiet_system "pkill", "-x", "AgentPingApp"
+  end
+
   service do
     run [opt_prefix/"AgentPing.app/Contents/MacOS/AgentPingApp"]
     keep_alive true
