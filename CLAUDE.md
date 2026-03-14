@@ -24,10 +24,13 @@ Three Swift targets in a single Swift package:
 Sources/
 ├── AgentPing/          # macOS menu bar GUI app (SwiftUI + AppKit)
 │   ├── AgentPingApp.swift       # AppDelegate, global hotkey, notifications, popover
+│   ├── HookDetector.swift       # Checks ~/.claude/settings.json for SessionEnd hook
+│   ├── UpdateChecker.swift      # Opt-out update check against GitHub Releases API
 │   ├── Views/
 │   │   ├── PopoverView.swift    # Main UI: tabs, search, project grouping, context menu
 │   │   ├── SessionRowView.swift # Session list row with status, context bar, cost
-│   │   └── PreferencesView.swift # Settings window
+│   │   ├── SessionHoverView.swift # Hover preview: model, status, task, context, cost
+│   │   └── PreferencesView.swift # Settings window (General, Integrations, About tabs)
 │   └── Notifications/
 │       └── NotificationManager.swift  # macOS notification handling
 ├── AgentPingCLI/       # CLI tool (ArgumentParser)
@@ -81,7 +84,7 @@ Port is written to `~/.agentping/port` for discovery. CLI reads this file to fin
 - **Context menu** -- right-click: jump, copy path, open transcript, open terminal, pin, mark done, delete
 - **"Ready" state** -- teal highlight when an agent finishes and needs review, interaction-based dismissal
 - **Notifications** -- ready (agent finished), needs-input, error, done, context window warning (80%+)
-- **Auto-sync** -- stale sessions (idle >5min, no live process) auto-marked done every 60s via kill(pid, 0)
+- **Auto-sync** -- sessions with dead processes auto-marked done every 30s via kill(pid, 0)
 - **Context bar** -- visual progress bar for context window usage (green/orange/red)
 - **Cost tracking** -- optional per-session and total cost display
 - **Auto-purge** -- finished sessions older than 24h removed on launch
@@ -157,7 +160,7 @@ Accepted risk: a malicious local process could forge session reports or delete s
 - Window jumping for multi-window editors uses `osascript` + System Events (Cmd+` cycling), not AX API directly, because AX permissions (`-25211`) get invalidated on every app rebuild with ad-hoc signing
 - After rebuilding from source, users must re-grant Accessibility permission in System Settings > Privacy & Security > Accessibility (remove and re-add AgentPing)
 - Context window size is hardcoded to 200K tokens (Claude Opus)
-- Stale session detection runs every 60s via kill(pid, 0) syscall, marks idle >5min sessions as done
+- Stale session detection runs every 30s via kill(pid, 0) syscall, marks sessions with dead processes as done
 - "Ready" (fresh idle) state uses `reviewedAt` field for interaction-based dismissal, not time-based
 - Tests require Xcode toolchain (XCTest not available with plain swift CLI)
 - The local directory is still named `agentshub` -- only the repo and all code references are renamed to `agentping`

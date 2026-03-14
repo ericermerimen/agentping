@@ -107,26 +107,20 @@ jobs:
 
             def caveats
               <<~EOS
-
-                ╔══════════════════════════════════════════════════╗
-                ║  Run these commands to get started:              ║
-                ╚══════════════════════════════════════════════════╝
+                To start AgentPing and auto-launch on login:
 
                   brew services start agentping
 
-                This launches AgentPing and auto-starts it on login.
-                After future upgrades, run:
+                After future upgrades:
 
                   brew upgrade agentping && brew services restart agentping
 
-                ──────────────────────────────────────────────────
                 Next steps:
                   1. Grant Accessibility access when prompted
                      (System Settings > Privacy & Security > Accessibility)
                   2. Open Preferences > "Copy Hook Config to Clipboard"
                   3. Paste into ~/.claude/settings.json
                   4. Restart your Claude Code sessions
-
               EOS
             end
 

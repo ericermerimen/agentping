@@ -129,7 +129,22 @@ struct SessionRowView: View {
         .popover(isPresented: $showHover, arrowEdge: .trailing) {
             SessionHoverView(session: session)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityDescription)
         .onReceive(timer) { now = $0 }
+    }
+
+    private var accessibilityDescription: String {
+        var parts = [projectName]
+        if session.status == .needsInput { parts.append("needs input") }
+        else if session.isFreshIdle { parts.append("ready for review") }
+        else if session.status == .error { parts.append("error") }
+        else if session.status == .running { parts.append("running") }
+        else { parts.append(statusLabel.lowercased()) }
+        if let pct = session.contextPercent, pct > 0 {
+            parts.append("context \(Int(pct * 100))%")
+        }
+        return parts.joined(separator: ", ")
     }
 
     // MARK: - Background
@@ -218,16 +233,6 @@ struct SessionRowView: View {
         switch session.status {
         case .error: return Color(.systemRed)
         default:     return Color(.systemOrange)
-        }
-    }
-
-    private var statusColor: Color {
-        switch session.status {
-        case .running:     return Color(.systemGreen).opacity(0.7)
-        case .idle:        return Color(.systemYellow).opacity(0.6)
-        case .done:        return Color(.systemGray)
-        case .unavailable: return Color(.systemGray)
-        default:           return .clear
         }
     }
 

@@ -47,7 +47,7 @@ else
 fi
 
 echo ""
-echo "==> Installation complete!"
+echo "==> Installation complete."
 echo ""
 echo "Start the app:   open $INSTALL_DIR/AgentPing.app"
 echo "CLI help:         agentping --help"
