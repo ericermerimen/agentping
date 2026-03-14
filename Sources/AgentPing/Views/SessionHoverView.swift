@@ -142,9 +142,10 @@ struct SessionHoverView: View {
     }
 
     private var statusLabel: String {
+        if session.isFreshIdle { return "Ready" }
         switch session.status {
         case .running:     return "Running"
-        case .needsInput:  return "Waiting"
+        case .needsInput:  return "Needs Input"
         case .idle:        return "Idle"
         case .error:       return "Error"
         case .done:        return "Done"
@@ -153,6 +154,7 @@ struct SessionHoverView: View {
     }
 
     private var statusColor: Color {
+        if session.isFreshIdle { return Color(.systemTeal) }
         switch session.status {
         case .running:    return Color(.systemGreen)
         case .needsInput: return Color(.systemOrange)

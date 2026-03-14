@@ -20,7 +20,7 @@ A macOS menu bar app that monitors your Claude Code sessions, shows their status
 - **HTTP API** -- localhost REST API (port 19199) for third-party tool integration
 - **Provider/model tracking** -- auto-extracted from Claude transcripts, settable via API for other tools
 - **Session hover preview** -- hover a session to see model, status, task, context, cost, and path
-- **FSEvents watcher** -- updates instantly when session state changes
+- **FSEvents watcher** -- updates in real time when session state changes
 - **Preferences** -- launch at login, scan interval, notification controls, API port
 
 ## Requirements
@@ -137,13 +137,19 @@ AgentPing works best with Claude Code hooks. Open the app preferences and click 
 {
   "hooks": {
     "PostToolUse": [
-      { "command": "agentping report --session $CLAUDE_SESSION_ID --event tool-use" }
+      { "command": "bash -c 'agentping report --session $(jq -r .session_id) --event tool-use'" }
     ],
     "Stop": [
-      { "command": "agentping report --session $CLAUDE_SESSION_ID --event stopped" }
+      { "command": "bash -c 'agentping report --session $(jq -r .session_id) --event stopped'" }
+    ],
+    "SubagentStop": [
+      { "command": "bash -c 'agentping report --session $(jq -r .session_id) --event tool-use'" }
     ],
     "Notification": [
-      { "command": "agentping report --session $CLAUDE_SESSION_ID --event needs-input" }
+      { "command": "bash -c 'agentping report --session $(jq -r .session_id) --event needs-input'" }
+    ],
+    "SessionEnd": [
+      { "command": "bash -c 'agentping report --session $(jq -r .session_id) --event session-end'" }
     ]
   }
 }
@@ -193,9 +199,12 @@ To enable automatic Homebrew tap updates, add a `TAP_TOKEN` secret to your repo 
 Sources/
 ├── AgentPing/           # macOS menu bar app (SwiftUI + AppKit)
 │   ├── AgentPingApp.swift
+│   ├── HookDetector.swift
+│   ├── UpdateChecker.swift
 │   ├── Views/
 │   │   ├── PopoverView.swift
 │   │   ├── SessionRowView.swift
+│   │   ├── SessionHoverView.swift
 │   │   └── PreferencesView.swift
 │   ├── Notifications/
 │   │   └── NotificationManager.swift

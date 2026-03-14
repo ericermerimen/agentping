@@ -6,7 +6,6 @@ set -euo pipefail
 
 REPO="ericermerimen/agentping"
 INSTALL_DIR="$HOME/Applications"
-CLI_LINK="/usr/local/bin/agentping"
 
 echo "==> Detecting latest release..."
 TAG=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | head -1 | sed 's/.*: "//;s/".*//')
@@ -39,18 +38,32 @@ if [ -d "/Applications/AgentPing.app" ]; then
 fi
 
 echo "==> Linking CLI..."
-if ln -sf "$INSTALL_DIR/AgentPing.app/Contents/MacOS/agentping" "$CLI_LINK" 2>/dev/null; then
-    echo "    Linked to $CLI_LINK"
+CLI_TARGET="$INSTALL_DIR/AgentPing.app/Contents/MacOS/agentping"
+if [ -d "$HOME/.local/bin" ] || mkdir -p "$HOME/.local/bin" 2>/dev/null; then
+    BIN_DIR="$HOME/.local/bin"
+    ln -sf "$CLI_TARGET" "$BIN_DIR/agentping"
+    echo "    Linked to $BIN_DIR/agentping"
+    # Remove stale /usr/local/bin symlink if it points to our app
+    if [ -L "/usr/local/bin/agentping" ]; then
+        sudo rm -f /usr/local/bin/agentping 2>/dev/null || true
+    fi
+    # Check if ~/.local/bin is on PATH
+    if ! echo "$PATH" | tr ':' '\n' | grep -qx "$HOME/.local/bin"; then
+        echo ""
+        echo "NOTE: Add ~/.local/bin to your PATH if not already:"
+        echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc"
+    fi
 else
-    echo "    Need sudo to link to $CLI_LINK"
-    sudo ln -sf "$INSTALL_DIR/AgentPing.app/Contents/MacOS/agentping" "$CLI_LINK"
+    BIN_DIR="/usr/local/bin"
+    echo "    Need sudo to link to $BIN_DIR"
+    sudo ln -sf "$CLI_TARGET" "$BIN_DIR/agentping"
 fi
 
 # Cleanup
 rm -rf "$TMPDIR"
 
 echo ""
-echo "==> AgentPing $TAG installed!"
+echo "==> AgentPing $TAG installed."
 echo ""
 echo "  Start the app:  open ~/Applications/AgentPing.app"
 echo "  CLI:             agentping --help"

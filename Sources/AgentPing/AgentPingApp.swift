@@ -80,7 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Register global hotkey: Cmd+Shift+A
+        // Register global hotkey: Ctrl+Option+A
         registerGlobalHotKey()
 
         // Initial sync + hook check + start periodic timers
@@ -112,14 +112,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var previousErrorIds = Set<String>()
     private var previousRunningIds = Set<String>()
     private var contextWarningIds = Set<String>()
+    /// Sessions that already received a "ready" notification -- skip "done" for these
+    /// to avoid double-notifying when a session goes running -> idle -> done.
+    private var readyNotifiedIds = Set<String>()
 
     private func checkForNeedsInput(sessions: [Session]) {
+        let globalNotificationsEnabled = UserDefaults.standard.object(forKey: "notificationsEnabled") as? Bool ?? true
+
         let currentNeedsInput = Set(sessions.filter { $0.status == .needsInput }.map(\.id))
         let newNeedsInput = currentNeedsInput.subtracting(previousNeedsInputIds)
 
-        for sessionId in newNeedsInput {
-            if let session = sessions.first(where: { $0.id == sessionId }) {
-                NotificationManager.shared.sendNeedsInput(session: session)
+        if globalNotificationsEnabled {
+            for sessionId in newNeedsInput {
+                if let session = sessions.first(where: { $0.id == sessionId }) {
+                    NotificationManager.shared.sendNeedsInput(session: session)
+                }
             }
         }
 
@@ -129,9 +136,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let currentErrors = Set(sessions.filter { $0.status == .error }.map(\.id))
         let newErrors = currentErrors.subtracting(previousErrorIds)
 
-        for sessionId in newErrors {
-            if let session = sessions.first(where: { $0.id == sessionId }) {
-                NotificationManager.shared.sendError(session: session)
+        if globalNotificationsEnabled {
+            for sessionId in newErrors {
+                if let session = sessions.first(where: { $0.id == sessionId }) {
+                    NotificationManager.shared.sendError(session: session)
+                }
             }
         }
 
@@ -141,29 +150,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let currentFreshIdle = Set(sessions.filter { $0.isFreshIdle }.map(\.id))
         let newlyReady = currentFreshIdle.intersection(previousRunningIds)
 
-        for sessionId in newlyReady {
-            if let session = sessions.first(where: { $0.id == sessionId }) {
-                NotificationManager.shared.sendReady(session: session)
+        if globalNotificationsEnabled {
+            for sessionId in newlyReady {
+                if let session = sessions.first(where: { $0.id == sessionId }) {
+                    NotificationManager.shared.sendReady(session: session)
+                    readyNotifiedIds.insert(sessionId)
+                }
             }
         }
 
-        // Also notify when a previously running session is fully done
+        // Also notify when a previously running session is fully done.
+        // Skip sessions that already got a "ready" notification to avoid double-notifying
+        // when a session transitions running -> idle -> done in quick succession.
         let currentDone = Set(sessions.filter { $0.status == .done }.map(\.id))
         let newlyDone = currentDone.intersection(previousRunningIds)
 
-        for sessionId in newlyDone {
-            if let session = sessions.first(where: { $0.id == sessionId }) {
-                NotificationManager.shared.sendDone(session: session)
+        if globalNotificationsEnabled {
+            for sessionId in newlyDone {
+                guard !readyNotifiedIds.contains(sessionId) else { continue }
+                if let session = sessions.first(where: { $0.id == sessionId }) {
+                    NotificationManager.shared.sendDone(session: session)
+                }
             }
         }
+
+        // Clean up ready-notified tracking for sessions no longer active
+        readyNotifiedIds = readyNotifiedIds.intersection(
+            sessions.filter { $0.status != .done && $0.status != .error }.map(\.id)
+        )
 
         previousRunningIds = Set(sessions.filter { $0.status == .running }.map(\.id))
 
         // Context window warning at 80%+
-        for session in sessions where session.status == .running {
-            if let pct = session.contextPercent, pct >= 0.80, !contextWarningIds.contains(session.id) {
-                contextWarningIds.insert(session.id)
-                NotificationManager.shared.sendContextWarning(session: session, percent: pct)
+        if globalNotificationsEnabled {
+            for session in sessions where session.status == .running {
+                if let pct = session.contextPercent, pct >= 0.80, !contextWarningIds.contains(session.id) {
+                    contextWarningIds.insert(session.id)
+                    NotificationManager.shared.sendContextWarning(session: session, percent: pct)
+                }
             }
         }
     }

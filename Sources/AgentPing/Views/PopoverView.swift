@@ -442,6 +442,11 @@ struct PopoverView: View {
                 Text(String(format: "~$%.2f", manager.totalCost))
                     .font(.system(size: 10).monospacedDigit())
                     .foregroundStyle(.secondary)
+            } else {
+                Text("\u{2303}\u{2325}A")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.quaternary)
+                    .help("Toggle with Ctrl+Option+A")
             }
         }
         .padding(.horizontal, 14)

@@ -17,7 +17,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
         let content = UNMutableNotificationContent()
         content.title = "Agent needs input"
-        content.body = "\(session.name ?? "Session") in \(session.app?.uppercased() ?? "unknown") is waiting for you"
+        content.body = "\(session.name ?? "Session") in \(session.app ?? "unknown") is waiting for you"
         content.sound = .default
         content.userInfo = ["sessionId": session.id]
 
@@ -35,7 +35,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
         let content = UNMutableNotificationContent()
         content.title = "Agent hit an error"
-        content.body = "\(session.name ?? "Session") in \(session.app?.uppercased() ?? "unknown") encountered an error"
+        content.body = "\(session.name ?? "Session") in \(session.app ?? "unknown") encountered an error"
         content.sound = .default
         content.userInfo = ["sessionId": session.id]
 
@@ -71,7 +71,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
         let content = UNMutableNotificationContent()
         content.title = "Agent ready"
-        content.body = "\(session.name ?? "Session") in \(session.app?.uppercased() ?? "unknown") finished and is ready for you"
+        content.body = "\(session.name ?? "Session") in \(session.app ?? "unknown") finished and is ready for review"
         content.sound = .default
         content.userInfo = ["sessionId": session.id]
 
@@ -89,7 +89,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
         let content = UNMutableNotificationContent()
         content.title = "Agent finished"
-        content.body = "\(session.name ?? "Session") in \(session.app?.uppercased() ?? "unknown") completed its task"
+        content.body = "\(session.name ?? "Session") in \(session.app ?? "unknown") completed its task"
         content.sound = .default
         content.userInfo = ["sessionId": session.id]
 

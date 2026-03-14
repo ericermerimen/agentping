@@ -120,9 +120,6 @@ private struct GeneralTab: View {
 
             Section("Notifications") {
                 Toggle("Enable notifications", isOn: $notificationsEnabled)
-                Text("Per-session notifications can be toggled from the session context menu.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Section("Data") {
@@ -153,7 +150,7 @@ private struct IntegrationsTab: View {
                             Text("SessionEnd hook not configured")
                                 .font(.caption)
                                 .fontWeight(.medium)
-                            Text("Copy the hook config below and paste into ~/.claude/settings.json to enable instant session close detection.")
+                            Text("Copy the hook config below and paste into ~/.claude/settings.json for session close detection.")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
@@ -178,7 +175,7 @@ private struct IntegrationsTab: View {
             }
 
             Section("Claude Code Hooks") {
-                Text("Add to ~/.claude/settings.json for rich session tracking:")
+                Text("Add to ~/.claude/settings.json for session tracking:")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Button("Copy Hook Config") {

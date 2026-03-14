@@ -6,10 +6,12 @@
     <title>AgentPing - Monitor Your Claude Code Sessions</title>
     <meta name="description" content="A macOS menu bar app that monitors your Claude Code sessions. See status, jump to windows, get notifications when agents need you.">
     <meta property="og:title" content="AgentPing - Monitor Your Claude Code Sessions">
-    <meta property="og:description" content="Run multiple Claude Code agents. Know which one needs you. Jump there instantly.">
+    <meta property="og:description" content="Run multiple Claude Code agents. Know which one needs you.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://ericermerimen.github.io/agentping">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AgentPing - Monitor Your Claude Code Sessions">
+    <meta name="twitter:description" content="Run multiple Claude Code agents. Know which one needs you.">
     <style>
         :root {
             --bg: #0a0a0a;
@@ -399,7 +401,7 @@
         <div class="container">
             <div class="hero-badge">Open Source -- Noncommercial License</div>
             <h1>Run 10 agents.<br><span>Know which one needs you.</span></h1>
-            <p>AgentPing is a macOS menu bar app that monitors all your Claude Code sessions in real time. See status at a glance, jump to the right window instantly, get notified when agents need your input.</p>
+            <p>AgentPing is a macOS menu bar app that monitors your Claude Code sessions. See status at a glance, jump to the right window, get notified when agents need your input.</p>
 
             <div class="hero-actions">
                 <a href="https://github.com/ericermerimen/agentping/releases/latest" class="btn btn-primary">Download for macOS</a>
@@ -413,7 +415,7 @@
                     <button class="install-tab" onclick="switchTab(this, 'manual')">Manual</button>
                 </div>
                 <div id="brew" class="install-code active"><span class="prompt">$ </span><span class="cmd">brew install ericermerimen/tap/agentping
-</span><span class="prompt">$ </span><span class="cmd">sudo cp -pR $(brew --prefix)/opt/agentping/AgentPing.app /Applications/</span></div>
+</span><span class="prompt">$ </span><span class="cmd">brew services start agentping</span></div>
                 <div id="curl" class="install-code"><span class="prompt">$ </span><span class="cmd">curl -fsSL https://raw.githubusercontent.com/ericermerimen/agentping/main/Scripts/install-remote.sh | bash</span></div>
                 <div id="manual" class="install-code"><span class="prompt">$ </span><span class="cmd">tar xzf AgentPing-*.tar.gz && cp -r AgentPing.app /Applications/</span></div>
             </div>
@@ -422,8 +424,8 @@
 
     <section class="features" id="features">
         <div class="container">
-            <h2>Built for power users</h2>
-            <p class="subtitle">Everything you need to manage multiple Claude Code sessions without losing your mind.</p>
+            <h2>What it does</h2>
+            <p class="subtitle">Monitor all your Claude Code sessions from the menu bar. See what needs attention, jump to it.</p>
 
             <div class="feature-grid">
                 <div class="feature-card">
@@ -434,40 +436,40 @@
                 <div class="feature-card">
                     <div class="feature-icon" style="background: rgba(59,130,246,0.12); color: #3b82f6;">&#8599;</div>
                     <h3>One-click window jump</h3>
-                    <p>Click any session to instantly focus its terminal window. Uses Accessibility API to find the right window even in complex setups.</p>
+                    <p>Click any session to focus its terminal or editor window. Works across VSCode, Cursor, Ghostty, iTerm, and more.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon" style="background: var(--accent-dim); color: var(--accent);">&#9888;</div>
-                    <h3>Smart notifications</h3>
+                    <h3>Notifications</h3>
                     <p>Get notified when an agent needs input, finishes, errors out, or burns through 80% of its context window.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon" style="background: rgba(168,85,247,0.12); color: #a855f7;">&#9638;</div>
+                    <div class="feature-icon" style="background: rgba(59,130,246,0.12); color: #3b82f6;">&#9638;</div>
                     <h3>Project grouping</h3>
                     <p>Sessions are grouped by project directory. Running 3 agents on the same repo? See them together.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon" style="background: rgba(236,72,153,0.12); color: #ec4899;">&#9881;</div>
+                    <div class="feature-icon" style="background: rgba(34,197,94,0.12); color: #22c55e;">&#9881;</div>
                     <h3>Context window tracking</h3>
                     <p>Visual progress bar shows how much context each session has consumed. Know when to start a fresh session.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon" style="background: rgba(20,184,166,0.12); color: #14b8a6;">&#36;</div>
+                    <div class="feature-icon" style="background: var(--accent-dim); color: var(--accent);">&#36;</div>
                     <h3>Cost tracking</h3>
                     <p>Optional per-session and total cost display. See your daily spend without leaving the menu bar.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon" style="background: rgba(251,191,36,0.12); color: #fbbf24;">&#8984;</div>
+                    <div class="feature-icon" style="background: rgba(59,130,246,0.12); color: #3b82f6;">&#8984;</div>
                     <h3>Global hotkey</h3>
                     <p>Press Ctrl+Option+A from anywhere to toggle the popover. No clicking required.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon" style="background: rgba(99,102,241,0.12); color: #6366f1;">&#8230;</div>
+                    <div class="feature-icon" style="background: rgba(34,197,94,0.12); color: #22c55e;">&#8230;</div>
                     <h3>Context menu</h3>
                     <p>Right-click to copy path, open transcript, pin sessions, open a terminal at the project directory, or mark sessions done.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon" style="background: rgba(244,63,94,0.12); color: #f43f5e;">&#9889;</div>
+                    <div class="feature-icon" style="background: rgba(239,68,68,0.12); color: #ef4444;">&#9889;</div>
                     <h3>CLI + hooks</h3>
                     <p>Full CLI for scripting. Integrates with Claude Code hooks for automatic session tracking. One-click config setup.</p>
                 </div>
@@ -507,7 +509,7 @@
             <p class="subtitle">Every session state is color-coded and prioritized so you always know what needs attention.</p>
             <div class="status-grid">
                 <div class="status-item">
-                    <div class="status-dot" style="background: var(--accent);"></div>
+                    <div class="status-dot" style="background: #f97316;"></div>
                     <strong>Needs Input</strong>
                     <span>Agent waiting for you</span>
                 </div>
@@ -517,6 +519,11 @@
                     <span>Something went wrong</span>
                 </div>
                 <div class="status-item">
+                    <div class="status-dot" style="background: var(--accent);"></div>
+                    <strong>Ready</strong>
+                    <span>Finished, needs review</span>
+                </div>
+                <div class="status-item">
                     <div class="status-dot" style="background: var(--green);"></div>
                     <strong>Running</strong>
                     <span>Agent is working</span>
@@ -524,17 +531,12 @@
                 <div class="status-item">
                     <div class="status-dot" style="background: var(--blue);"></div>
                     <strong>Idle</strong>
-                    <span>Waiting for your turn</span>
+                    <span>Between tasks</span>
                 </div>
                 <div class="status-item">
                     <div class="status-dot" style="background: #71717a;"></div>
                     <strong>Done</strong>
                     <span>Task completed</span>
-                </div>
-                <div class="status-item">
-                    <div class="status-dot" style="background: #71717a; opacity: 0.5;"></div>
-                    <strong>Unavailable</strong>
-                    <span>Process not found</span>
                 </div>
             </div>
         </div>
@@ -542,11 +544,11 @@
 
     <section class="cta">
         <div class="container">
-            <h2>Stop tab-hunting. Start shipping.</h2>
-            <p>Free, open source, no account required. Just install and go.</p>
+            <h2>Local, free, no account needed</h2>
+            <p>Install it, add the hooks, and forget about it until an agent needs you.</p>
             <div class="hero-actions">
                 <a href="https://github.com/ericermerimen/agentping/releases/latest" class="btn btn-primary">Download for macOS</a>
-                <a href="https://github.com/ericermerimen/agentping" class="btn btn-secondary">Star on GitHub</a>
+                <a href="https://github.com/ericermerimen/agentping" class="btn btn-secondary">View on GitHub</a>
             </div>
         </div>
     </section>

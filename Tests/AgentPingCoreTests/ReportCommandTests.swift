@@ -47,6 +47,6 @@ final class ReportCommandTests: XCTestCase {
         try handler.handle(sessionId: "stop-1", event: "stopped", name: nil, file: nil)
 
         let session = try store.read(id: "stop-1")
-        XCTAssertEqual(session?.status, .done)
+        XCTAssertEqual(session?.status, .idle)
     }
 }

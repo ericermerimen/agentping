@@ -121,7 +121,7 @@ codesign --force --sign "$SIGN_IDENTITY" \
     "$APP_BUNDLE"
 rm -f "$ENTITLEMENTS_FILE"
 
-echo "==> Done!"
+echo "==> Done."
 echo ""
 echo "App bundle:  $APP_BUNDLE"
 echo "CLI binary:  $APP_BUNDLE/Contents/MacOS/$CLI_NAME"
