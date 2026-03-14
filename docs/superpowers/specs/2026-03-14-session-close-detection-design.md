@@ -77,31 +77,35 @@ If missing, show a persistent `(!)` indicator:
 - In Preferences > Integrations tab as an inline warning message
 - The indicator disappears only when the hook is actually detected on a subsequent check
 
-**Detection logic (new method on SessionManager or a dedicated HookDetector):**
+**Detection logic (dedicated `HookDetector` in app target):**
+
+The hook detection belongs in the app target (`Sources/AgentPing/`), not in `AgentPingCore`, because reading Claude Code's settings file is an app-level concern, not a core library responsibility.
 
 ```swift
-static func isSessionEndHookConfigured() -> Bool {
-    let settingsPath = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent(".claude/settings.json")
-    guard let data = try? Data(contentsOf: settingsPath),
-          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let hooks = json["hooks"] as? [String: Any],
-          let sessionEnd = hooks["SessionEnd"] as? [[String: Any]] else {
-        return false
-    }
-    return sessionEnd.contains { entry in
-        (entry["command"] as? String)?.contains("agentping") == true
+// Sources/AgentPing/HookDetector.swift
+final class HookDetector: ObservableObject {
+    @Published private(set) var isSessionEndHookMissing: Bool = true
+
+    func check() {
+        let settingsPath = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude/settings.json")
+        guard let data = try? Data(contentsOf: settingsPath),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let hooks = json["hooks"] as? [String: Any],
+              let sessionEnd = hooks["SessionEnd"] as? [[String: Any]] else {
+            isSessionEndHookMissing = true
+            return
+        }
+        isSessionEndHookMissing = !sessionEnd.contains { entry in
+            (entry["command"] as? String)?.contains("agentping") == true
+        }
     }
 }
 ```
 
-**Published property for UI binding:**
+Updated during `sync()` calls by calling `hookDetector.check()` alongside `manager.sync()`.
 
-```swift
-@Published public private(set) var isSessionEndHookMissing: Bool = true
-```
-
-Updated during `sync()` calls.
+**Known limitation:** This only checks `~/.claude/settings.json` (user-level). Claude Code also supports project-level `.claude/settings.json` which can define hooks. A user with the hook configured at project level would see a false-positive warning. This is acceptable for v1 -- most users configure hooks globally.
 
 ### 5. UI for missing hook warning
 
@@ -124,7 +128,8 @@ When hook is missing, show a warning section above the existing hook config:
 | File | Change |
 |---|---|
 | `Sources/AgentPingCore/Models/Session.swift` | Add `"session-end"` case → `.done` |
-| `Sources/AgentPingCore/Manager/SessionManager.swift` | Remove stale→done logic, add hook detection, add `isSessionEndHookMissing` property |
+| `Sources/AgentPingCore/Manager/SessionManager.swift` | Remove stale→done logic from `sync()` |
+| `Sources/AgentPing/HookDetector.swift` | New file: hook config detection + `isSessionEndHookMissing` published property |
 | `Sources/AgentPing/Views/PreferencesView.swift` | Update hook config string (4 hooks), add missing-hook warning |
 | `Sources/AgentPing/Views/PopoverView.swift` | Show `(!)` badge when hook not detected |
 | `Sources/AgentPing/AgentPingApp.swift` | No changes needed (sync timer already exists, hook check piggybacks on it) |
@@ -135,14 +140,15 @@ When hook is missing, show a warning section above the existing hook config:
 - Active/History tab filtering (`.done`/`.error` = History, everything else = Active)
 - ProcessScanner, DirectoryWatcher, FSEvents watcher
 - "Mark as Done" context menu (stays as manual fallback)
-- Window jumping, notifications, cost tracking
+- Window jumping, cost tracking
+- Notifications (no notification on session-end -- silently moving to History is the right UX; the session is already closed, alerting the user adds noise)
 - API endpoints
 
 ## Edge cases
 
 | Scenario | Behavior |
 |---|---|
-| `kill -9` on Claude process (hook can't fire) | Session stays in Active. User can manually mark done. |
+| `kill -9` on Claude process (hook can't fire) | Session stays in Active. User can manually mark done. Also applies to terminal crashes, SSH disconnects, or system sleep/wake races where the hook doesn't get a chance to execute. |
 | SessionEnd fires but API server is down | CLI falls back to writing JSON file directly. Session still moves to History. |
 | User has old 3-hook config | Persistent `(!)` nudge until they update. Sessions still work but rely on manual "Mark as Done" for close detection. |
 | `/clear` in Claude Code | SessionEnd fires with `reason: "clear"`. Session moves to History. |
