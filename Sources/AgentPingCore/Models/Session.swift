@@ -126,6 +126,45 @@ extension Session {
     }
 }
 
+// MARK: - Display helpers
+
+extension Session {
+    public var isAttention: Bool {
+        status == .needsInput || status == .error || isFreshIdle
+    }
+
+    public var isHomeCwd: Bool {
+        guard let cwd = cwd else { return false }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        return cwd == home || cwd == home + "/"
+    }
+
+    public var projectName: String {
+        if let cwd = cwd, !cwd.isEmpty, !isHomeCwd {
+            let last = URL(fileURLWithPath: cwd).lastPathComponent
+            if !last.isEmpty { return last }
+        }
+        if let task = taskDescription, !task.isEmpty {
+            return task
+        }
+        return name ?? "Unnamed"
+    }
+
+    public var displayPath: String {
+        guard let cwd = cwd, !cwd.isEmpty else { return "" }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        return cwd.hasPrefix(home) ? "~" + cwd.dropFirst(home.count) : cwd
+    }
+
+    public var subtitle: String? {
+        if isHomeCwd { return "~" }
+        if let task = taskDescription, !task.isEmpty, !isHomeCwd {
+            return task
+        }
+        return displayPath.isEmpty ? nil : displayPath
+    }
+}
+
 extension JSONDecoder {
     public static let agentPing: JSONDecoder = {
         let decoder = JSONDecoder()

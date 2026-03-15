@@ -97,7 +97,10 @@ public final class APIRouter {
                 if let taskDesc = ReportHandler.extractLastMessage(from: transcriptPath) {
                     session.taskDescription = taskDesc
                 }
-                session.contextPercent = ReportHandler.readContextPercent(transcriptPath: transcriptPath)
+                // Prefer context_percent from hook stdin (authoritative), fall back to transcript parsing
+                if json["context_percent"] == nil {
+                    session.contextPercent = ReportHandler.readContextPercent(transcriptPath: transcriptPath)
+                }
                 // Auto-extract provider/model from Claude transcripts
                 if session.provider == nil, session.model == nil,
                    let modelId = ReportHandler.readModelFromTranscript(transcriptPath),
@@ -115,6 +118,7 @@ public final class APIRouter {
             if let model = json["model"] as? String { session.model = model }
             if let pid = json["pid"] as? Int { session.pid = pid }
             if let costUsd = json["cost_usd"] as? Double { session.costUsd = costUsd }
+            if let contextPct = json["context_percent"] as? Double { session.contextPercent = contextPct }
 
             session.status = SessionStatus.from(event: event, current: session.status)
 

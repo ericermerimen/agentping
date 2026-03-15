@@ -1,26 +1,22 @@
 import SwiftUI
 import AgentPingCore
 
-struct SessionRowView: View {
+struct ExpandedRowView: View {
     let session: Session
+    let costTrackingEnabled: Bool
     var onTap: (() -> Void)?
     var onReviewed: (() -> Void)?
 
-    @AppStorage("costTrackingEnabled") private var costTrackingEnabled = false
     @State private var now = Date()
     @State private var isHovered = false
     @State private var showHover = false
     @State private var hoverTask: DispatchWorkItem?
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    private var isAttention: Bool {
-        session.status == .needsInput || session.status == .error || session.isFreshIdle
-    }
-
     var body: some View {
         HStack(spacing: 0) {
             // Left accent bar for attention rows
-            if isAttention {
+            if session.isAttention {
                 RoundedRectangle(cornerRadius: 1)
                     .fill(accentColor)
                     .frame(width: 2)
@@ -39,9 +35,9 @@ struct SessionRowView: View {
                             .foregroundStyle(.tertiary)
                     }
 
-                    Text(projectName)
-                        .font(.system(size: 13, weight: isAttention ? .medium : .regular))
-                        .foregroundStyle(isAttention ? .primary : .secondary)
+                    Text(session.projectName)
+                        .font(.system(size: 13, weight: session.isAttention ? .medium : .regular))
+                        .foregroundStyle(session.isAttention ? .primary : .secondary)
                         .lineLimit(1)
 
                     if let app = session.app, !app.isEmpty {
@@ -54,12 +50,12 @@ struct SessionRowView: View {
                     }
                 }
 
-                if let sub = subtitle {
+                if let sub = session.subtitle {
                     Text(sub)
                         .font(.system(size: 11))
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
-                        .truncationMode(.head)
+                        .truncationMode(.tail)
                 }
 
                 // Context window progress bar
@@ -135,7 +131,7 @@ struct SessionRowView: View {
     }
 
     private var accessibilityDescription: String {
-        var parts = [projectName]
+        var parts = [session.projectName]
         if session.status == .needsInput { parts.append("needs input") }
         else if session.isFreshIdle { parts.append("ready for review") }
         else if session.status == .error { parts.append("error") }
@@ -164,41 +160,6 @@ struct SessionRowView: View {
     }
 
     // MARK: - Computed
-
-    private var isHomeCwd: Bool {
-        guard let cwd = session.cwd else { return false }
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return cwd == home || cwd == home + "/"
-    }
-
-    private var projectName: String {
-        if let cwd = session.cwd, !cwd.isEmpty, !isHomeCwd {
-            let last = URL(fileURLWithPath: cwd).lastPathComponent
-            if !last.isEmpty { return last }
-        }
-        // If cwd is home dir, use task description as name
-        if let task = session.taskDescription, !task.isEmpty {
-            return task
-        }
-        return session.name ?? "Unnamed"
-    }
-
-    /// Subtitle: show task if project name is from cwd, show path if name is from task
-    private var subtitle: String? {
-        if isHomeCwd {
-            return "~"
-        }
-        if let task = session.taskDescription, !task.isEmpty, !isHomeCwd {
-            return task
-        }
-        return displayPath.isEmpty ? nil : displayPath
-    }
-
-    private var displayPath: String {
-        guard let cwd = session.cwd, !cwd.isEmpty else { return "" }
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return cwd.hasPrefix(home) ? "~" + cwd.dropFirst(home.count) : cwd
-    }
 
     private func contextBar(percent: Double) -> some View {
         HStack(spacing: 4) {

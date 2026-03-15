@@ -7,6 +7,7 @@ import Combine
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let manager = SessionManager()
     let hookDetector = HookDetector()
+    let displayPreferences = DisplayPreferences()
     var statusItem: NSStatusItem!
     var popover: NSPopover!
     var preferencesWindow: NSWindow?
@@ -36,7 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.openPreferences()
             }, dismissPopover: { [weak self] in
                 self?.popover.performClose(nil)
-            })
+            }).environmentObject(displayPreferences)
         )
 
         // Set up directory watcher for live updates

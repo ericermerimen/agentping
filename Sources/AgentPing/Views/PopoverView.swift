@@ -9,10 +9,10 @@ enum SessionTab: String, CaseIterable {
 struct PopoverView: View {
     @ObservedObject var manager: SessionManager
     @ObservedObject var hookDetector: HookDetector
+    @EnvironmentObject var displayPrefs: DisplayPreferences
     var openPreferences: (() -> Void)?
     var dismissPopover: (() -> Void)?
 
-    @AppStorage("costTrackingEnabled") private var costTrackingEnabled = false
     @State private var selectedTab: SessionTab = .active
     @State private var searchText = ""
     @State private var showSearch = false
@@ -328,20 +328,40 @@ struct PopoverView: View {
             emptyState
         } else {
             ForEach(sessions) { session in
-                sessionRow(session)
+                historyRow(session)
             }
         }
     }
 
     private func sessionRow(_ session: Session) -> some View {
         VStack(spacing: 0) {
-            SessionRowView(
+            if session.isAttention {
+                ExpandedRowView(
+                    session: session,
+                    costTrackingEnabled: displayPrefs.costTrackingEnabled,
+                    onTap: { jumpToWindow(session: session) },
+                    onReviewed: { manager.markReviewed(id: session.id) }
+                )
+            } else {
+                CompactRowView(
+                    session: session,
+                    onTap: { jumpToWindow(session: session) },
+                    onReviewed: { manager.markReviewed(id: session.id) }
+                )
+            }
+        }
+        .contextMenu { sessionContextMenu(session: session) }
+    }
+
+    private func historyRow(_ session: Session) -> some View {
+        VStack(spacing: 0) {
+            CompactRowView(
                 session: session,
                 onTap: { jumpToWindow(session: session) },
                 onReviewed: { manager.markReviewed(id: session.id) }
             )
-            .contextMenu { sessionContextMenu(session: session) }
         }
+        .contextMenu { sessionContextMenu(session: session) }
     }
 
     private func projectHeader(_ name: String, count: Int) -> some View {
@@ -429,7 +449,7 @@ struct PopoverView: View {
 
             Spacer()
 
-            if costTrackingEnabled && manager.totalCost > 0 {
+            if displayPrefs.costTrackingEnabled && manager.totalCost > 0 {
                 Text("Total cost (est.)")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)

@@ -7,7 +7,7 @@ public final class ReportHandler {
         self.store = store ?? SessionStore()
     }
 
-    public func handle(sessionId: String, event: String, name: String?, file: String?, cwd: String? = nil, transcriptPath: String? = nil, app: String? = nil) throws {
+    public func handle(sessionId: String, event: String, name: String?, file: String?, cwd: String? = nil, transcriptPath: String? = nil, app: String? = nil, contextPercent: Double? = nil) throws {
         var session = try store.read(id: sessionId) ?? Session(id: sessionId)
 
         // Update name: explicit name > derive from cwd > keep existing
@@ -26,8 +26,12 @@ public final class ReportHandler {
             session.transcriptPath = transcriptPath
             // Always update to show the latest message
             session.taskDescription = Self.extractLastMessage(from: transcriptPath) ?? session.taskDescription
-            // Read real context % from Claude Code's status line data
-            session.contextPercent = Self.readContextPercent(transcriptPath: transcriptPath)
+            // Prefer context % from hook stdin (authoritative), fall back to transcript parsing
+            if let contextPercent {
+                session.contextPercent = contextPercent
+            } else {
+                session.contextPercent = Self.readContextPercent(transcriptPath: transcriptPath)
+            }
             // Extract provider and model from transcript
             if session.provider == nil || session.model == nil,
                let modelId = Self.readModelFromTranscript(transcriptPath),
@@ -129,8 +133,7 @@ public final class ReportHandler {
     }
 
     /// Read real context usage from the last assistant message's token counts.
-    /// Claude's context window is 200K tokens. The usage.cache_read_input_tokens + input_tokens
-    /// gives the actual tokens used.
+    /// Determines context window size from the model ID in the transcript.
     public static func readContextPercent(transcriptPath: String) -> Double? {
         // Read last 100KB of transcript to find the most recent assistant message with usage
         guard let fh = FileHandle(forReadingAtPath: transcriptPath) else { return nil }
@@ -158,11 +161,35 @@ public final class ReportHandler {
             let totalInput = inputTokens + cacheRead + cacheCreate
 
             if totalInput > 0 {
-                // Claude Opus context window: 200K tokens
-                return min(Double(totalInput) / 200_000.0, 1.0)
+                let model = (obj["model"] as? String) ?? (msg["model"] as? String) ?? ""
+                let contextWindow = Self.contextWindowSize(for: model)
+                return min(Double(totalInput) / contextWindow, 1.0)
             }
         }
         return nil
+    }
+
+    /// Determine context window size from model ID.
+    /// Checks for explicit suffix like [1m], then falls back to known model defaults.
+    /// Opus models default to 1M context (their standard config in Claude Code).
+    /// Other models default to 200K.
+    static func contextWindowSize(for modelId: String) -> Double {
+        let id = modelId.lowercased()
+
+        // Explicit suffix from Claude Code: [1m], [500k], [200k], etc.
+        if let regex = try? NSRegularExpression(pattern: #"\[(\d+)([km])\]"#, options: .caseInsensitive),
+           let match = regex.firstMatch(in: modelId, range: NSRange(modelId.startIndex..., in: modelId)),
+           let numRange = Range(match.range(at: 1), in: modelId),
+           let unitRange = Range(match.range(at: 2), in: modelId),
+           let num = Double(modelId[numRange]) {
+            let unit = modelId[unitRange].lowercased()
+            return unit == "m" ? num * 1_000_000.0 : num * 1_000.0
+        }
+
+        // Opus models have 1M context window by default
+        if id.contains("opus") { return 1_000_000.0 }
+
+        return 200_000.0
     }
 
     /// Parse a Claude model ID into (provider, displayName).

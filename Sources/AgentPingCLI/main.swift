@@ -65,11 +65,16 @@ struct Report: ParsableCommand {
     @Option(name: .long, help: "Current file")
     var file: String?
 
-    /// JSON payload from stdin (Claude Code hooks pass session_id and cwd here)
+    /// JSON payload from stdin (Claude Code hooks pass session data here)
     private struct StdinPayload: Decodable {
         let session_id: String?
         let cwd: String?
         let transcript_path: String?
+        let context_window: ContextWindow?
+
+        struct ContextWindow: Decodable {
+            let used_percentage: Double?
+        }
     }
 
     /// Map TERM_PROGRAM env var to a display name
@@ -131,6 +136,9 @@ struct Report: ParsableCommand {
         if let file { payload["file"] = file }
         if let cwd = stdin?.cwd { payload["cwd"] = cwd }
         if let transcriptPath = stdin?.transcript_path { payload["transcript_path"] = transcriptPath }
+        if let contextPct = stdin?.context_window?.used_percentage {
+            payload["context_percent"] = contextPct / 100.0 // API expects 0.0-1.0
+        }
         if let app = Self.detectApp() { payload["app"] = app }
         // Auto-detect the Claude Code process PID (grandparent of this hook process)
         payload["pid"] = Self.detectClaudePid()
@@ -149,7 +157,8 @@ struct Report: ParsableCommand {
             file: file,
             cwd: stdin?.cwd,
             transcriptPath: stdin?.transcript_path,
-            app: Self.detectApp()
+            app: Self.detectApp(),
+            contextPercent: stdin?.context_window.map { $0.used_percentage.map { $0 / 100.0 } } ?? nil
         )
     }
 }
