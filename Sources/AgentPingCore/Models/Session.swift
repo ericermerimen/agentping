@@ -10,14 +10,16 @@ public enum SessionStatus: String, Codable, CaseIterable {
 
     /// Map a hook event name to a session status.
     /// "stopped" won't downgrade "needs-input" because both hooks fire and Stop comes last.
+    /// "subagent-stop" preserves current status to avoid overwriting idle after background agents finish.
     public static func from(event: String, current: SessionStatus) -> SessionStatus {
         switch event {
-        case "tool-use":    return .running
-        case "needs-input": return .needsInput
-        case "stopped":     return current == .needsInput ? .needsInput : .idle
-        case "session-end": return .done
-        case "error":       return .error
-        default:            return .running
+        case "tool-use":      return .running
+        case "needs-input":   return .needsInput
+        case "stopped":       return current == .needsInput ? .needsInput : .idle
+        case "session-end":   return .done
+        case "error":         return .error
+        case "subagent-stop": return current
+        default:              return .running
         }
     }
 }
