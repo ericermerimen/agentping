@@ -2,6 +2,8 @@
 
 A macOS menu bar app that monitors your Claude Code sessions, shows their status, and lets you jump to the correct window with one click.
 
+*Want a desktop pet version? Check out [AgentPong](https://github.com/ericermerimen/agentpong) -- a pixel art husky that watches your sessions from a tiny floating office.*
+
 ## Features
 
 - **Menu bar icon** with active session count and attention badge
