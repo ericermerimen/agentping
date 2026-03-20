@@ -56,7 +56,12 @@ public final class SessionStore {
             .filter { $0.pathExtension == "json" }
         return try files.compactMap { url in
             let data = try Data(contentsOf: url)
-            return try? JSONDecoder.agentPing.decode(Session.self, from: data)
+            do {
+                return try JSONDecoder.agentPing.decode(Session.self, from: data)
+            } catch {
+                print("[AgentPing] failed to decode \(url.lastPathComponent): \(error)")
+                return nil
+            }
         }
     }
 

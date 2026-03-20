@@ -3,7 +3,7 @@ import AgentPingCore
 
 struct SessionHoverView: View {
     let session: Session
-    @AppStorage("costTrackingEnabled") private var costTrackingEnabled = false
+    @EnvironmentObject private var displayPrefs: DisplayPreferences
     @State private var now = Date()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -92,7 +92,7 @@ struct SessionHoverView: View {
             }
 
             // Cost
-            if costTrackingEnabled, let cost = session.costUsd, cost > 0 {
+            if displayPrefs.costTrackingEnabled, let cost = session.costUsd, cost > 0 {
                 HStack {
                     Text("Cost (est.)")
                         .font(.system(size: 10))
@@ -111,7 +111,7 @@ struct SessionHoverView: View {
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                     Spacer()
-                    Text(displayPath(cwd))
+                    Text(session.displayPath)
                         .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
@@ -174,16 +174,5 @@ struct SessionHoverView: View {
         if hours < 24 { return "\(hours)h \(minutes % 60)m ago" }
         let days = hours / 24
         return "\(days)d ago"
-    }
-
-    private func contextBarColor(_ pct: Double) -> Color {
-        if pct > 0.85 { return Color(.systemRed).opacity(0.8) }
-        if pct > 0.65 { return Color(.systemOrange).opacity(0.7) }
-        return Color(.systemGreen).opacity(0.5)
-    }
-
-    private func displayPath(_ cwd: String) -> String {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return cwd.hasPrefix(home) ? "~" + cwd.dropFirst(home.count) : cwd
     }
 }

@@ -67,10 +67,58 @@ final class ModelExtractionTests: XCTestCase {
     }
 
     func testHumanizeModelName() {
-        XCTAssertEqual(ReportHandler.humanizeModelName("claude-opus-4-6"), ("Claude", "Opus 4.6"))
-        XCTAssertEqual(ReportHandler.humanizeModelName("claude-sonnet-4-6"), ("Claude", "Sonnet 4.6"))
-        XCTAssertEqual(ReportHandler.humanizeModelName("claude-haiku-4-5-20251001"), ("Claude", "Haiku 4.5"))
-        XCTAssertEqual(ReportHandler.humanizeModelName("claude-sonnet-4-5-20241022"), ("Claude", "Sonnet 4.5"))
-        XCTAssertEqual(ReportHandler.humanizeModelName("unknown-model"), ("Unknown", "unknown-model"))
+        let opus = ReportHandler.humanizeModelName("claude-opus-4-6")
+        XCTAssertEqual(opus.provider, "Claude")
+        XCTAssertEqual(opus.model, "Opus 4.6")
+
+        let sonnet = ReportHandler.humanizeModelName("claude-sonnet-4-6")
+        XCTAssertEqual(sonnet.provider, "Claude")
+        XCTAssertEqual(sonnet.model, "Sonnet 4.6")
+
+        let haiku = ReportHandler.humanizeModelName("claude-haiku-4-5-20251001")
+        XCTAssertEqual(haiku.provider, "Claude")
+        XCTAssertEqual(haiku.model, "Haiku 4.5")
+
+        let sonnet45 = ReportHandler.humanizeModelName("claude-sonnet-4-5-20241022")
+        XCTAssertEqual(sonnet45.provider, "Claude")
+        XCTAssertEqual(sonnet45.model, "Sonnet 4.5")
+
+        let unknown = ReportHandler.humanizeModelName("unknown-model")
+        XCTAssertEqual(unknown.provider, "Unknown")
+        XCTAssertEqual(unknown.model, "unknown-model")
+    }
+
+    // MARK: - contextWindowSize suffix parsing
+
+    func testContextWindowSize_1mSuffix() {
+        XCTAssertEqual(ReportHandler.contextWindowSize(for: "claude-opus-4-6[1m]"), 1_000_000.0)
+    }
+
+    func testContextWindowSize_500kSuffix() {
+        XCTAssertEqual(ReportHandler.contextWindowSize(for: "claude-sonnet-4-6[500k]"), 500_000.0)
+    }
+
+    func testContextWindowSize_200kSuffix() {
+        XCTAssertEqual(ReportHandler.contextWindowSize(for: "claude-sonnet-4-6[200k]"), 200_000.0)
+    }
+
+    func testContextWindowSize_uppercaseSuffix() {
+        XCTAssertEqual(ReportHandler.contextWindowSize(for: "claude-opus-4-6[1M]"), 1_000_000.0)
+    }
+
+    func testContextWindowSize_opusDefault() {
+        XCTAssertEqual(ReportHandler.contextWindowSize(for: "claude-opus-4-6"), 1_000_000.0)
+    }
+
+    func testContextWindowSize_sonnetDefault() {
+        XCTAssertEqual(ReportHandler.contextWindowSize(for: "claude-sonnet-4-6"), 200_000.0)
+    }
+
+    func testContextWindowSize_emptyString() {
+        XCTAssertEqual(ReportHandler.contextWindowSize(for: ""), 200_000.0)
+    }
+
+    func testContextWindowSize_2mSuffix() {
+        XCTAssertEqual(ReportHandler.contextWindowSize(for: "some-model[2m]"), 2_000_000.0)
     }
 }

@@ -243,11 +243,17 @@ public final class ReportHandler {
         return nil
     }
 
-    /// Calculate cumulative cost from all assistant messages in a Claude transcript.
-    /// Reads the model from each message and applies per-model token pricing.
+    /// Calculate cumulative cost from assistant messages in a Claude transcript.
+    /// Reads the last 200KB to avoid loading entire multi-MB transcripts into memory.
     public static func readCostFromTranscript(_ path: String) -> Double? {
-        guard let data = FileManager.default.contents(atPath: path),
-              let content = String(data: data, encoding: .utf8) else { return nil }
+        guard let fh = FileHandle(forReadingAtPath: path) else { return nil }
+        defer { fh.closeFile() }
+
+        let fileSize = fh.seekToEndOfFile()
+        let readSize: UInt64 = min(fileSize, 200_000)
+        fh.seek(toFileOffset: fileSize - readSize)
+        let data = fh.readDataToEndOfFile()
+        guard let content = String(data: data, encoding: .utf8) else { return nil }
 
         var totalCost = 0.0
         for line in content.components(separatedBy: .newlines) {

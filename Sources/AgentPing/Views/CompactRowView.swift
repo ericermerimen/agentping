@@ -72,18 +72,6 @@ struct CompactRowView: View {
             Text("Done")
                 .font(.system(size: 11))
                 .foregroundStyle(.tertiary)
-        } else if session.status == .needsInput {
-            Text("Reply")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color(.systemOrange))
-        } else if session.status == .error {
-            Text("Error")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color(.systemRed))
-        } else if session.isFreshIdle {
-            Text("Ready")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(Color(.systemTeal))
         } else {
             Text("Unavailable")
                 .font(.system(size: 11))
@@ -95,17 +83,10 @@ struct CompactRowView: View {
         if session.status == .running { return "running" }
         if session.status == .idle { return idleElapsed }
         if session.status == .done { return "done" }
-        if session.status == .needsInput { return "needs input" }
-        if session.status == .error { return "error" }
-        if session.isFreshIdle { return "ready" }
         return "unavailable"
     }
 
     private var idleElapsed: String {
-        let total = max(0, Int(now.timeIntervalSince(session.lastEventAt)))
-        let h = total / 3600, m = (total % 3600) / 60
-        if h > 0 { return "idle \(h)h" }
-        if m > 0 { return "idle \(m)m" }
-        return "idle"
+        session.idleElapsed(now: now)
     }
 }

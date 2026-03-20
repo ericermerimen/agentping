@@ -51,7 +51,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let session = self?.manager.sessions.first(where: { $0.id == sessionId }) else { return }
             self?.popover.performClose(nil)
             let jumper = WindowJumper()
-            _ = jumper.jumpTo(session: session)
+            if !jumper.jumpTo(session: session) {
+                NSSound.beep()
+            }
         }
 
         // Watch for sessions that transition to needs-input
@@ -233,6 +235,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         preferencesWindow = window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        apiServer?.stop()
+        watcher?.stop()
+        scanTimer?.invalidate()
+        syncTimer?.invalidate()
     }
 
     @objc func togglePopover() {

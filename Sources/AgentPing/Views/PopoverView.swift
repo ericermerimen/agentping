@@ -497,7 +497,10 @@ struct PopoverView: View {
         dismissPopover?()
         DispatchQueue.global(qos: .userInteractive).async {
             let jumper = WindowJumper()
-            _ = jumper.jumpTo(session: session)
+            let success = jumper.jumpTo(session: session)
+            if !success {
+                DispatchQueue.main.async { NSSound.beep() }
+            }
         }
     }
 

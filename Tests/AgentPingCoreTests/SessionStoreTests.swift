@@ -64,4 +64,37 @@ final class SessionStoreTests: XCTestCase {
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: tempDir.path))
     }
+
+    // MARK: - sanitizeId path traversal
+
+    func testSanitizeId_normalId() {
+        XCTAssertEqual(SessionStore.sanitizeId("abc-123"), "abc-123")
+    }
+
+    func testSanitizeId_pathTraversal() {
+        let result = SessionStore.sanitizeId("../../etc/passwd")
+        XCTAssertFalse(result.contains(".."))
+        XCTAssertFalse(result.contains("/"))
+    }
+
+    func testSanitizeId_forwardSlash() {
+        let result = SessionStore.sanitizeId("path/to/file")
+        XCTAssertFalse(result.contains("/"))
+    }
+
+    func testSanitizeId_backslash() {
+        let result = SessionStore.sanitizeId("path\\to\\file")
+        XCTAssertFalse(result.contains("\\"))
+    }
+
+    func testSanitizeId_nullBytes() {
+        let result = SessionStore.sanitizeId("abc\0def")
+        XCTAssertFalse(result.contains("\0"))
+    }
+
+    func testSanitizeId_emptyString() {
+        let result = SessionStore.sanitizeId("")
+        XCTAssertFalse(result.isEmpty)
+        XCTAssertEqual(result, "_invalid_")
+    }
 }

@@ -183,12 +183,6 @@ struct ExpandedRowView: View {
         .padding(.top, 2)
     }
 
-    private func contextBarColor(_ pct: Double) -> Color {
-        if pct > 0.85 { return Color(.systemRed).opacity(0.8) }
-        if pct > 0.65 { return Color(.systemOrange).opacity(0.7) }
-        return Color(.systemGreen).opacity(0.5)
-    }
-
     private var accentColor: Color {
         if session.isFreshIdle { return Color(.systemTeal) }
         switch session.status {
@@ -206,14 +200,6 @@ struct ExpandedRowView: View {
     }
 
     private var idleElapsed: String {
-        let total = max(0, Int(now.timeIntervalSince(session.lastEventAt)))
-        let h = total / 3600, m = (total % 3600) / 60
-        if h > 0 {
-            return "idle \(h)h"
-        } else if m > 0 {
-            return "idle \(m)m"
-        } else {
-            return "idle"
-        }
+        session.idleElapsed(now: now)
     }
 }

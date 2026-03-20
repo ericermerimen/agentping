@@ -165,6 +165,15 @@ extension Session {
         }
         return displayPath.isEmpty ? nil : displayPath
     }
+
+    /// Formatted idle duration relative to `now`. Shared by ExpandedRowView and CompactRowView.
+    public func idleElapsed(now: Date) -> String {
+        let total = max(0, Int(now.timeIntervalSince(lastEventAt)))
+        let h = total / 3600, m = (total % 3600) / 60
+        if h > 0 { return "idle \(h)h" }
+        if m > 0 { return "idle \(m)m" }
+        return "idle"
+    }
 }
 
 extension JSONDecoder {

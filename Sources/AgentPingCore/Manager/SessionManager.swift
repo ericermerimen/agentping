@@ -33,6 +33,7 @@ public final class SessionManager: ObservableObject {
                 .sorted { $0.lastEventAt > $1.lastEventAt }
             lastSyncAt = Date()
         } catch {
+            print("[AgentPing] reload failed: \(error)")
             sessions = []
         }
     }
@@ -59,7 +60,9 @@ public final class SessionManager: ObservableObject {
                 do {
                     try store.write(updated)
                     changed = true
-                } catch {}
+                } catch {
+                    print("[AgentPing] failed to mark dead session \(session.id): \(error)")
+                }
             }
         }
         if changed {
@@ -71,21 +74,27 @@ public final class SessionManager: ObservableObject {
         do {
             try store.deleteUnavailable()
             reload()
-        } catch {}
+        } catch {
+            print("[AgentPing] clearUnavailable failed: \(error)")
+        }
     }
 
     public func clearHistory() {
         do {
             try store.deleteHistory()
             reload()
-        } catch {}
+        } catch {
+            print("[AgentPing] clearHistory failed: \(error)")
+        }
     }
 
     public func deleteSession(id: String) {
         do {
             try store.delete(id: id)
             reload()
-        } catch {}
+        } catch {
+            print("[AgentPing] deleteSession(\(id)) failed: \(error)")
+        }
     }
 
     /// Remove finished sessions older than 24 hours.
@@ -93,7 +102,9 @@ public final class SessionManager: ObservableObject {
         do {
             try store.deleteOlderThan(24 * 60 * 60)
             reload()
-        } catch {}
+        } catch {
+            print("[AgentPing] autoPurge failed: \(error)")
+        }
     }
 
     public func markReviewed(id: String) {
@@ -116,6 +127,8 @@ public final class SessionManager: ObservableObject {
         do {
             try store.write(session)
             reload()
-        } catch {}
+        } catch {
+            print("[AgentPing] updateSession(\(session.id)) failed: \(error)")
+        }
     }
 }
