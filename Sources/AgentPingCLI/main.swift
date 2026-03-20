@@ -158,7 +158,7 @@ struct Report: ParsableCommand {
             cwd: stdin?.cwd,
             transcriptPath: stdin?.transcript_path,
             app: Self.detectApp(),
-            contextPercent: stdin?.context_window.map { $0.used_percentage.map { $0 / 100.0 } } ?? nil
+            contextPercent: stdin?.context_window?.used_percentage.map { $0 / 100.0 }
         )
     }
 }

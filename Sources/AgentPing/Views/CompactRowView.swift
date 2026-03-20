@@ -64,14 +64,6 @@ struct CompactRowView: View {
             Text("Running")
                 .font(.system(size: 11))
                 .foregroundStyle(Color(.systemGreen).opacity(0.8))
-        } else if session.status == .idle {
-            Text(idleElapsed)
-                .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(.tertiary)
-        } else if session.status == .done {
-            Text("Done")
-                .font(.system(size: 11))
-                .foregroundStyle(.tertiary)
         } else if session.status == .needsInput {
             Text("Reply")
                 .font(.system(size: 11, weight: .medium))
@@ -84,6 +76,14 @@ struct CompactRowView: View {
             Text("Ready")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(Color(.systemTeal))
+        } else if session.status == .idle {
+            Text(idleElapsed)
+                .font(.system(size: 11).monospacedDigit())
+                .foregroundStyle(.tertiary)
+        } else if session.status == .done {
+            Text("Done")
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
         } else {
             Text("Unavailable")
                 .font(.system(size: 11))
@@ -93,11 +93,11 @@ struct CompactRowView: View {
 
     private var statusText: String {
         if session.status == .running { return "running" }
-        if session.status == .idle { return idleElapsed }
-        if session.status == .done { return "done" }
         if session.status == .needsInput { return "needs input" }
         if session.status == .error { return "error" }
         if session.isFreshIdle { return "ready" }
+        if session.status == .idle { return idleElapsed }
+        if session.status == .done { return "done" }
         return "unavailable"
     }
 
