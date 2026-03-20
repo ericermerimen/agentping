@@ -64,6 +64,10 @@ struct CompactRowView: View {
             Text("Running")
                 .font(.system(size: 11))
                 .foregroundStyle(Color(.systemGreen).opacity(0.8))
+        } else if session.status == .error {
+            Text("Error")
+                .font(.system(size: 11))
+                .foregroundStyle(Color(.systemRed).opacity(0.8))
         } else if session.status == .idle {
             Text(idleElapsed)
                 .font(.system(size: 11).monospacedDigit())
@@ -81,6 +85,7 @@ struct CompactRowView: View {
 
     private var statusText: String {
         if session.status == .running { return "running" }
+        if session.status == .error { return "error" }
         if session.status == .idle { return idleElapsed }
         if session.status == .done { return "done" }
         return "unavailable"

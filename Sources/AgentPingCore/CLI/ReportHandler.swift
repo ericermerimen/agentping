@@ -243,40 +243,69 @@ public final class ReportHandler {
         return nil
     }
 
-    /// Calculate cumulative cost from assistant messages in a Claude transcript.
-    /// Reads the last 200KB to avoid loading entire multi-MB transcripts into memory.
+    /// Calculate cumulative cost from all assistant messages in a Claude transcript.
+    /// Streams the file in chunks with a rolling buffer to handle line boundaries,
+    /// so it works correctly on large transcripts without loading the entire file.
     public static func readCostFromTranscript(_ path: String) -> Double? {
         guard let fh = FileHandle(forReadingAtPath: path) else { return nil }
         defer { fh.closeFile() }
 
-        let fileSize = fh.seekToEndOfFile()
-        let readSize: UInt64 = min(fileSize, 200_000)
-        fh.seek(toFileOffset: fileSize - readSize)
-        let data = fh.readDataToEndOfFile()
-        guard let content = String(data: data, encoding: .utf8) else { return nil }
-
+        let chunkSize = 256 * 1024 // 256KB per read
         var totalCost = 0.0
-        for line in content.components(separatedBy: .newlines) {
-            guard !line.isEmpty,
-                  let lineData = line.data(using: .utf8),
-                  let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-                  obj["type"] as? String == "assistant" else { continue }
+        var leftover = ""
 
+        while true {
+            let data = fh.readData(ofLength: chunkSize)
+            if data.isEmpty { break }
+            guard let chunk = String(data: data, encoding: .utf8) else { continue }
+
+            let combined = leftover + chunk
+            var lines = combined.components(separatedBy: "\n")
+            // Last element may be an incomplete line -- save for next iteration
+            leftover = lines.removeLast()
+
+            for line in lines {
+                guard !line.isEmpty,
+                      let lineData = line.data(using: .utf8),
+                      let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
+                      obj["type"] as? String == "assistant" else { continue }
+
+                let msg = obj["message"] as? [String: Any]
+                guard let usage = (msg?["usage"] ?? obj["usage"]) as? [String: Any] else { continue }
+
+                let model = (msg?["model"] ?? obj["model"]) as? String ?? ""
+                let pricing = tokenPricing(for: model)
+
+                let inputTokens = (usage["input_tokens"] as? Int) ?? 0
+                let outputTokens = (usage["output_tokens"] as? Int) ?? 0
+                let cacheRead = (usage["cache_read_input_tokens"] as? Int) ?? 0
+                let cacheCreate = (usage["cache_creation_input_tokens"] as? Int) ?? 0
+
+                totalCost += Double(inputTokens) * pricing.input / 1_000_000.0
+                totalCost += Double(outputTokens) * pricing.output / 1_000_000.0
+                totalCost += Double(cacheRead) * pricing.cacheRead / 1_000_000.0
+                totalCost += Double(cacheCreate) * pricing.cacheWrite / 1_000_000.0
+            }
+        }
+
+        // Process any remaining partial line
+        if !leftover.isEmpty,
+           let lineData = leftover.data(using: .utf8),
+           let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
+           obj["type"] as? String == "assistant" {
             let msg = obj["message"] as? [String: Any]
-            guard let usage = (msg?["usage"] ?? obj["usage"]) as? [String: Any] else { continue }
-
-            let model = (msg?["model"] ?? obj["model"]) as? String ?? ""
-            let pricing = tokenPricing(for: model)
-
-            let inputTokens = (usage["input_tokens"] as? Int) ?? 0
-            let outputTokens = (usage["output_tokens"] as? Int) ?? 0
-            let cacheRead = (usage["cache_read_input_tokens"] as? Int) ?? 0
-            let cacheCreate = (usage["cache_creation_input_tokens"] as? Int) ?? 0
-
-            totalCost += Double(inputTokens) * pricing.input / 1_000_000.0
-            totalCost += Double(outputTokens) * pricing.output / 1_000_000.0
-            totalCost += Double(cacheRead) * pricing.cacheRead / 1_000_000.0
-            totalCost += Double(cacheCreate) * pricing.cacheWrite / 1_000_000.0
+            if let usage = (msg?["usage"] ?? obj["usage"]) as? [String: Any] {
+                let model = (msg?["model"] ?? obj["model"]) as? String ?? ""
+                let pricing = tokenPricing(for: model)
+                let inputTokens = (usage["input_tokens"] as? Int) ?? 0
+                let outputTokens = (usage["output_tokens"] as? Int) ?? 0
+                let cacheRead = (usage["cache_read_input_tokens"] as? Int) ?? 0
+                let cacheCreate = (usage["cache_creation_input_tokens"] as? Int) ?? 0
+                totalCost += Double(inputTokens) * pricing.input / 1_000_000.0
+                totalCost += Double(outputTokens) * pricing.output / 1_000_000.0
+                totalCost += Double(cacheRead) * pricing.cacheRead / 1_000_000.0
+                totalCost += Double(cacheCreate) * pricing.cacheWrite / 1_000_000.0
+            }
         }
 
         return totalCost > 0 ? totalCost : nil

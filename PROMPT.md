@@ -1,8 +1,6 @@
 # Implement Adaptive Density (v0.7.0)
 
-Read CLAUDE.md first for full project context. Then read the spec and plan:
-- `docs/superpowers/specs/2026-03-15-adaptive-density-dot-grid-design.md`
-- `docs/superpowers/plans/2026-03-15-adaptive-density-dot-grid-plan.md`
+Read CLAUDE.md first for full project context.
 
 ## What you're building
 

@@ -27,10 +27,12 @@ Sources/
 │   ├── HookDetector.swift       # Checks ~/.claude/settings.json for SessionEnd hook
 │   ├── UpdateChecker.swift      # Opt-out update check against GitHub Releases API
 │   ├── Views/
-│   │   ├── PopoverView.swift    # Main UI: tabs, search, project grouping, context menu
-│   │   ├── SessionRowView.swift # Session list row with status, context bar, cost
+│   │   ├── PopoverView.swift      # Main UI: tabs, search, project grouping, context menu
+│   │   ├── ExpandedRowView.swift  # Attention session row with full detail (status, context bar, cost)
+│   │   ├── CompactRowView.swift   # Compact session row (project name + status only)
 │   │   ├── SessionHoverView.swift # Hover preview: model, status, task, context, cost
-│   │   └── PreferencesView.swift # Settings window (General, Integrations, About tabs)
+│   │   ├── ViewHelpers.swift      # Shared view helpers (context bar color)
+│   │   └── PreferencesView.swift  # Settings window (General, Integrations, About tabs)
 │   └── Notifications/
 │       └── NotificationManager.swift  # macOS notification handling
 ├── AgentPingCLI/       # CLI tool (ArgumentParser)
