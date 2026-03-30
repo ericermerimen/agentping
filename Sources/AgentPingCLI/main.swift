@@ -114,7 +114,9 @@ struct Report: ParsableCommand {
     }
 
     private func readStdinPayload() -> StdinPayload? {
-        let data = FileHandle.standardInput.availableData
+        // Use readDataToEndOfFile for reliable blocking read.
+        // availableData is non-blocking and can return empty if pipe isn't ready.
+        let data = FileHandle.standardInput.readDataToEndOfFile()
         guard !data.isEmpty else {
             return nil
         }
