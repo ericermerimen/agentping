@@ -65,7 +65,7 @@ struct PopoverView: View {
             Text("AgentPing")
                 .font(.system(size: 13, weight: .semibold))
 
-            Text(UpdateChecker.currentVersion)
+            Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")
                 .font(.system(size: 10))
                 .foregroundStyle(.quaternary)
 

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>AgentPing Updates</title>
+    <link>https://ericermerimen.github.io/agentping/appcast.xml</link>
+    <description>Most recent changes with links to updates.</description>
+    <language>en</language>
+
+    <item>
+      <title>Version 0.11.0</title>
+      <description><![CDATA[
+        <ul>
+          <li>Added Sparkle auto-update support</li>
+          <li>Check for Updates menu item now works</li>
+        </ul>
+      ]]></description>
+      <pubDate>Sun, 29 Mar 2026 00:00:00 +0000</pubDate>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <enclosure
+        url="https://github.com/ericermerimen/agentping/releases/download/v0.11.0/AgentPing-v0.11.0-macos.tar.gz"
+        sparkle:version="0.11.0"
+        sparkle:shortVersionString="0.11.0"
+        sparkle:edSignature="PLACEHOLDER_SIGN_WITH_generate_appcast"
+        length="0"
+        type="application/octet-stream"
+      />
+    </item>
+
+  </channel>
+</rss>

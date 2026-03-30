@@ -98,6 +98,26 @@ fi
 # Create PkgInfo
 echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
 
+# Embed Sparkle.framework for auto-updates
+# SPM puts frameworks in .build/arm64-apple-macosx/{config}/ or .build/{config}/
+SPARKLE_FW=""
+for candidate in \
+    "$PROJECT_DIR/.build/arm64-apple-macosx/${CONFIG}/Sparkle.framework" \
+    "$PROJECT_DIR/.build/${CONFIG}/Sparkle.framework" \
+    "$PROJECT_DIR/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"; do
+    if [ -d "$candidate" ]; then
+        SPARKLE_FW="$candidate"
+        break
+    fi
+done
+if [ -n "$SPARKLE_FW" ]; then
+    mkdir -p "$APP_BUNDLE/Contents/Frameworks"
+    cp -R "$SPARKLE_FW" "$APP_BUNDLE/Contents/Frameworks/"
+    echo "==> Embedded Sparkle.framework from $SPARKLE_FW"
+else
+    echo "WARNING: Sparkle.framework not found, auto-updates will not work"
+fi
+
 echo "==> Code signing ($SIGN_IDENTITY)..."
 # Write entitlements to a temp file (heredoc-to-/dev/stdin is unreliable)
 ENTITLEMENTS_FILE=$(mktemp /tmp/agentping_entitlements.XXXXXX.plist)
@@ -112,7 +132,11 @@ cat > "$ENTITLEMENTS_FILE" <<'ENTITLEMENTS'
 </plist>
 ENTITLEMENTS
 
-# Sign nested binaries first
+# Sign embedded frameworks first (inside-out signing)
+if [ -d "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework" ]; then
+    codesign --force --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
+fi
+# Sign nested binaries
 codesign --force --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/MacOS/$CLI_NAME"
 codesign --force --sign "$SIGN_IDENTITY" "$APP_BUNDLE/Contents/MacOS/$APP_BINARY_NAME"
 # Sign the bundle with entitlements

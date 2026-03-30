@@ -20,5 +20,11 @@
     <string>APPL</string>
     <key>NSAccessibilityUsageDescription</key>
     <string>AgentPing needs accessibility access to focus terminal windows when you click on a session.</string>
+    <key>SUFeedURL</key>
+    <string>https://ericermerimen.github.io/agentping/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>MFXKZi9wP1qC2tGJMxbKyBTma6Ei0Tdbu0odkIbT9fQ=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
 </dict>
 </plist>

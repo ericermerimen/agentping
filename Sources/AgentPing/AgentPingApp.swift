@@ -3,11 +3,18 @@ import SwiftUI
 import Carbon.HIToolbox
 import AgentPingCore
 import Combine
+import Sparkle
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let manager = SessionManager()
     let hookDetector = HookDetector()
     let displayPreferences = DisplayPreferences()
+    /// Sparkle updater controller for auto-updates
+    let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
     var statusItem: NSStatusItem!
     var popover: NSPopover!
     var preferencesWindow: NSWindow?
@@ -92,15 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startPeriodicScan()
         startPeriodicSync()
 
-        // Auto-check for updates on launch
-        if UserDefaults.standard.object(forKey: "checkForUpdatesAutomatically") == nil {
-            UserDefaults.standard.set(true, forKey: "checkForUpdatesAutomatically")
-        }
-        if UserDefaults.standard.bool(forKey: "checkForUpdatesAutomatically") {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
-                UpdateChecker.shared.check()
-            }
-        }
+        // Sparkle handles automatic update checks via SUEnableAutomaticChecks in Info.plist
     }
 
     private func updateIcon(sessions: [Session]) {
@@ -229,7 +228,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         window.title = ""
         window.toolbarStyle = .preference
-        window.contentViewController = NSHostingController(rootView: PreferencesView(manager: manager, hookDetector: hookDetector))
+        window.contentViewController = NSHostingController(rootView: PreferencesView(manager: manager, hookDetector: hookDetector, updater: updaterController.updater))
         window.center()
         window.isReleasedWhenClosed = false
         preferencesWindow = window

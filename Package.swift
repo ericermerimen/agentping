@@ -10,11 +10,15 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", "1.3.0"..<"1.7.0"),
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.1"),
     ],
     targets: [
         .executableTarget(
             name: "AgentPing",
-            dependencies: ["AgentPingCore"],
+            dependencies: [
+                "AgentPingCore",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ],
             path: "Sources/AgentPing",
             exclude: ["Info.plist", "Assets"]
         ),

@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import ServiceManagement
 import AgentPingCore
+import Sparkle
 
 enum PreferencesTab: Int, CaseIterable {
     case general = 0
@@ -28,6 +29,7 @@ enum PreferencesTab: Int, CaseIterable {
 struct PreferencesView: View {
     @ObservedObject var manager: SessionManager
     @ObservedObject var hookDetector: HookDetector
+    let updater: SPUUpdater
     @State private var selectedTab: PreferencesTab = .general
 
     var body: some View {
@@ -76,7 +78,7 @@ struct PreferencesView: View {
             case .integrations:
                 IntegrationsTab(hookDetector: hookDetector)
             case .about:
-                AboutTab(manager: manager)
+                AboutTab(manager: manager, updater: updater)
             }
         }
         .frame(width: 400, height: 540)
@@ -207,9 +209,12 @@ private struct IntegrationsTab: View {
 
 private struct AboutTab: View {
     @ObservedObject var manager: SessionManager
-    @ObservedObject private var updateChecker = UpdateChecker.shared
-    @AppStorage("checkForUpdatesAutomatically") private var autoCheckUpdates = true
+    let updater: SPUUpdater
     @AppStorage("apiPort") private var apiPort = 19199
+
+    private var currentVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0-dev"
+    }
 
     var body: some View {
         Form {
@@ -222,7 +227,7 @@ private struct AboutTab: View {
                     Text("AgentPing")
                         .font(.title2)
                         .fontWeight(.semibold)
-                    Text("Version \(UpdateChecker.currentVersion)")
+                    Text("Version \(currentVersion)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text("Run 10 agents. Know which one needs you.")
@@ -252,60 +257,15 @@ private struct AboutTab: View {
             }
 
             Section("Updates") {
-                Toggle("Check automatically on launch", isOn: $autoCheckUpdates)
-
                 HStack {
-                    if let error = updateChecker.error {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                            .lineLimit(1)
-                    } else if updateChecker.hasUpdate, let latest = updateChecker.latestVersion {
-                        Text("v\(latest) available")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    } else if updateChecker.latestVersion != nil {
-                        Text("Up to date")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
-
-                    Spacer()
-
-                    Button {
-                        updateChecker.check()
-                    } label: {
-                        if updateChecker.isChecking {
-                            ProgressView()
-                                .controlSize(.small)
-                                .frame(width: 14, height: 14)
-                            Text("Checking...")
-                        } else {
-                            Text("Check Now")
-                        }
-                    }
-                    .disabled(updateChecker.isChecking)
-                }
-
-                if updateChecker.hasUpdate, let url = updateChecker.updateURL {
-                    HStack {
-                        Text("Update via Homebrew:")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Button("Copy Command") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.setString(
-                                "brew update && brew upgrade agentping && sudo cp -pR $(brew --prefix)/opt/agentping/AgentPing.app /Applications/",
-                                forType: .string
-                            )
-                        }
+                    Text("Automatic updates are handled by Sparkle.")
                         .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Check for Updates...") {
+                        updater.checkForUpdates()
                     }
-                    Button("View Release on GitHub") {
-                        NSWorkspace.shared.open(url)
-                    }
-                    .font(.caption)
+                    .disabled(!updater.canCheckForUpdates)
                 }
             }
 
@@ -342,7 +302,7 @@ private struct AboutTab: View {
         let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
 
         let info = """
-AgentPing v\(UpdateChecker.currentVersion)
+AgentPing v\(currentVersion)
 macOS \(osVersion)
 API port: \(apiPort)
 Active sessions: \(activeSessions)
