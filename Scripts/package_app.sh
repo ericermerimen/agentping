@@ -118,6 +118,9 @@ else
     echo "WARNING: Sparkle.framework not found, auto-updates will not work"
 fi
 
+# Add rpath for embedded frameworks (Sparkle needs this)
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Contents/MacOS/$APP_BINARY_NAME" 2>/dev/null || true
+
 echo "==> Code signing ($SIGN_IDENTITY)..."
 # Write entitlements to a temp file (heredoc-to-/dev/stdin is unreliable)
 ENTITLEMENTS_FILE=$(mktemp /tmp/agentping_entitlements.XXXXXX.plist)
