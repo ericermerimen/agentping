@@ -23,35 +23,35 @@ Three Swift targets in a single Swift package:
 ```
 Sources/
 ├── AgentPing/          # macOS menu bar GUI app (SwiftUI + AppKit)
-│   ├── AgentPingApp.swift       # AppDelegate, global hotkey, notifications, popover
-│   ├── HookDetector.swift       # Checks ~/.claude/settings.json for SessionEnd hook
-│   ├── UpdateChecker.swift      # Opt-out update check against GitHub Releases API
+│   ├── AgentPingApp.swift       # AppDelegate, global hotkey, notifications, popover -- keep hotkey Ctrl+Option+A
+│   ├── HookDetector.swift       # Checks ~/.claude/settings.json for SessionEnd hook -- do not change hook detection path
+│   ├── UpdateChecker.swift      # Opt-out update check against GitHub Releases API -- keep opt-out default
 │   ├── Views/
-│   │   ├── PopoverView.swift      # Main UI: tabs, search, project grouping, context menu
-│   │   ├── ExpandedRowView.swift  # Attention session row with full detail (status, context bar, cost)
-│   │   ├── CompactRowView.swift   # Compact session row (project name + status only)
-│   │   ├── SessionHoverView.swift # Hover preview: model, status, task, context, cost
-│   │   ├── ViewHelpers.swift      # Shared view helpers (context bar color)
-│   │   └── PreferencesView.swift  # Settings window (General, Integrations, About tabs)
+│   │   ├── PopoverView.swift      # Main UI: tabs, search, project grouping -- preserve tab order (Active/History)
+│   │   ├── ExpandedRowView.swift  # Attention session row -- keep status/context bar/cost layout stable
+│   │   ├── CompactRowView.swift   # Compact session row -- keep minimal (project name + status only)
+│   │   ├── SessionHoverView.swift # Hover preview -- keep fields: model, status, task, context, cost
+│   │   ├── ViewHelpers.swift      # Shared view helpers -- keep context bar color thresholds (green/orange/red)
+│   │   └── PreferencesView.swift  # Settings window -- preserve tab structure (General, Integrations, About)
 │   └── Notifications/
-│       └── NotificationManager.swift  # macOS notification handling
-├── AgentPingCLI/       # CLI tool (ArgumentParser)
-│   └── main.swift      # Commands: report, list, status, clear, delete
-└── AgentPingCore/      # Shared library (no UI)
+│       └── NotificationManager.swift  # macOS notification handling -- do not add sound without user preference
+├── AgentPingCLI/       # CLI tool (ArgumentParser) -- keep as thin wrapper, logic lives in Core
+│   └── main.swift      # Commands: report, list, status, clear, delete -- do not add commands that bypass the HTTP API
+└── AgentPingCore/      # Shared library (no UI) -- all business logic here, keep UI-free
     ├── Models/
-    │   ├── Session.swift              # Session data model + JSON codable
-    │   └── PricingConfig.swift        # Externalized per-provider token pricing, tiered Sonnet rates
-    ├── Store/SessionStore.swift       # File-based JSON persistence (~/.agentping/sessions/)
-    ├── Manager/SessionManager.swift   # Session lifecycle, sync, auto-purge
-    ├── Scanner/ProcessScanner.swift   # Detects running Claude processes via ps (used for initial scan/app detection)
-    ├── Watcher/DirectoryWatcher.swift # FSEvents watcher for live updates
-    ├── WindowJumper/WindowJumper.swift # Accessibility API window focus
-    ├── CLI/ReportHandler.swift        # Processes hook events, reads transcripts, streaming dedup
+    │   ├── Session.swift              # Session data model -- keep backward compatible with existing JSON files on disk
+    │   └── PricingConfig.swift        # Per-provider token pricing -- keep externalized, do not hardcode rates
+    ├── Store/SessionStore.swift       # File-based JSON persistence -- preserve ~/.agentping/sessions/ path and 0700 permissions
+    ├── Manager/SessionManager.swift   # Session lifecycle, sync, auto-purge -- keep 30s stale check interval
+    ├── Scanner/ProcessScanner.swift   # Detects running Claude processes via ps -- used for initial scan only, not polling
+    ├── Watcher/DirectoryWatcher.swift # FSEvents watcher -- keep as primary change detection, do not replace with polling
+    ├── WindowJumper/WindowJumper.swift # Accessibility API window focus -- keep AX-based, avoid AppleScript where possible
+    ├── CLI/ReportHandler.swift        # Processes hook events, reads transcripts -- preserve streaming dedup logic (message.id + usage hash)
     └── API/
-        ├── HTTPParser.swift           # Minimal HTTP/1.1 request/response parser
-        ├── APIRouter.swift            # REST route handling + input validation
-        ├── APIServer.swift            # NWListener TCP server (localhost only)
-        └── OAuthFetcher.swift         # Reads Claude Code OAuth creds, fetches quota from Anthropic API
+        ├── HTTPParser.swift           # Minimal HTTP/1.1 parser -- keep minimal, no third-party HTTP libs
+        ├── APIRouter.swift            # REST route handling -- preserve input validation at boundary
+        ├── APIServer.swift            # NWListener TCP server -- keep localhost-only binding (acceptLocalOnly = true)
+        └── OAuthFetcher.swift         # Reads Claude Code OAuth creds -- do not access Keychain unless quotaTrackingEnabled
 ```
 
 ## How it works
@@ -100,6 +100,28 @@ Port is written to `~/.agentping/port` for discovery. CLI reads this file to fin
 - **HTTP API** -- localhost REST API for third-party tool integration (port 19199)
 - **Provider/model tracking** -- auto-extracted from Claude transcripts, manual via API for other tools
 - **Session hover preview** -- shows model, status, task, context, cost, path on hover
+
+## Constraints
+
+- Do not access macOS Keychain without user opt-in (`quotaTrackingEnabled` must be true)
+- Do not use timers faster than 10s in SwiftUI views (causes unnecessary re-renders)
+- Do not mix Homebrew cask install with manual app launch (causes dual instances)
+- Do not hardcode token pricing in ReportHandler -- use PricingConfig
+- `CFBundleShortVersionString` must be clean semver (e.g. `0.12.1`), `CFBundleVersion` gets full git describe (e.g. `v0.12.1-3-gabcdef`)
+- Do not break backward compatibility of session JSON format -- existing `~/.agentping/sessions/` files must remain loadable
+- Keep the HTTP API on localhost only, no auth (trusted local process model)
+
+## Diagnostic heuristics
+
+- Cost differs from Codex/CodexBar: likely streaming dedup or pricing drift, not a token counting bug
+- "Unable to Check For Updates" Sparkle popup: `appcast.xml` not deployed, not a code bug
+- Session count differs from AgentPong: different detection models, expected behavior
+
+## Data dependencies
+
+- If you change `PricingConfig.swift` defaults, update `pricing.json` docs too
+- If you change session JSON model (`Session.swift`), verify backward compat with existing `~/.agentping/sessions/` files
+- New release -> CI auto-generates `appcast.xml` and updates homebrew cask
 
 ## GitHub repos
 
