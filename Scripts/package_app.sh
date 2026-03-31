@@ -87,8 +87,8 @@ GIT_VERSION="${GIT_VERSION#v}"  # strip leading 'v'
 # Short version for CFBundleShortVersionString (strip pre-release suffix for bundle version)
 BUNDLE_SHORT_VERSION=$(echo "$GIT_VERSION" | sed 's/-.*//')
 echo "==> Version: $GIT_VERSION (bundle: $BUNDLE_SHORT_VERSION)"
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $GIT_VERSION" "$APP_BUNDLE/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUNDLE_SHORT_VERSION" "$APP_BUNDLE/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $BUNDLE_SHORT_VERSION" "$APP_BUNDLE/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $GIT_VERSION" "$APP_BUNDLE/Contents/Info.plist"
 
 # Copy app icon
 if [ -f "$PROJECT_DIR/Sources/AgentPing/Assets/AppIcon.icns" ]; then
