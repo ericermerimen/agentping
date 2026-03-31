@@ -41,6 +41,7 @@ public struct Session: Codable, Identifiable, Equatable {
     public var taskDescription: String?
     public var contextPercent: Double?
     public var pinned: Bool
+    /// Provider: "Claude" (Anthropic direct) or "Bedrock" (AWS Bedrock)
     public var provider: String?
     public var model: String?
     public var reviewedAt: Date?

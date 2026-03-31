@@ -7,20 +7,13 @@
     <language>en</language>
 
     <item>
-      <title>Version 0.11.0</title>
-      <description><![CDATA[
-        <ul>
-          <li>Added Sparkle auto-update support</li>
-          <li>Check for Updates menu item now works</li>
-        </ul>
-      ]]></description>
-      <pubDate>Sun, 29 Mar 2026 00:00:00 +0000</pubDate>
+      <title>Version 0.11.2</title>
+      <pubDate>Sun, 30 Mar 2026 22:32:00 +0000</pubDate>
       <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
       <enclosure
-        url="https://github.com/ericermerimen/agentping/releases/download/v0.11.0/AgentPing-v0.11.0-macos.tar.gz"
-        sparkle:version="0.11.0"
-        sparkle:shortVersionString="0.11.0"
-        sparkle:edSignature="PLACEHOLDER_SIGN_WITH_generate_appcast"
+        url="https://github.com/ericermerimen/agentping/releases/download/v0.11.2/AgentPing-v0.11.2-macos.tar.gz"
+        sparkle:version="0.11.2"
+        sparkle:shortVersionString="0.11.2"
         length="0"
         type="application/octet-stream"
       />

@@ -193,29 +193,78 @@ public final class ReportHandler {
     }
 
     /// Parse a Claude model ID into (provider, displayName).
-    /// e.g. "claude-opus-4-6" -> ("Claude", "Opus 4.6")
-    /// e.g. "claude-haiku-4-5-20251001" -> ("Claude", "Haiku 4.5")
+    /// Handles both Anthropic direct and Bedrock model ID formats.
+    /// Anthropic:  "claude-opus-4-6" -> ("Claude", "Opus 4.6")
+    /// Bedrock:    "anthropic.claude-3-5-sonnet-20241022-v2:0" -> ("Bedrock", "Sonnet 3.5")
+    /// Bedrock:    "us.anthropic.claude-opus-4-6-20250515" -> ("Bedrock", "Opus 4.6")
     public static func humanizeModelName(_ modelId: String) -> (provider: String, model: String) {
-        guard modelId.hasPrefix("claude-") else {
-            return ("Unknown", modelId)
+        var id = modelId
+        var provider = "Claude"
+
+        // Detect and strip Bedrock prefixes: "us.anthropic." or "anthropic."
+        if id.hasPrefix("us.anthropic.") {
+            id = String(id.dropFirst("us.anthropic.".count))
+            provider = "Bedrock"
+        } else if id.hasPrefix("anthropic.") {
+            id = String(id.dropFirst("anthropic.".count))
+            provider = "Bedrock"
         }
+
+        // Strip Bedrock version suffix like ":0", ":1"
+        if let colonIdx = id.lastIndex(of: ":") {
+            let suffix = id[id.index(after: colonIdx)...]
+            if suffix.allSatisfy(\.isNumber) {
+                id = String(id[..<colonIdx])
+            }
+        }
+
+        guard id.hasPrefix("claude-") else {
+            return (provider == "Bedrock" ? "Bedrock" : "Unknown", id)
+        }
+
         // Strip "claude-" prefix
-        let rest = String(modelId.dropFirst(7)) // drop "claude-"
+        let rest = String(id.dropFirst(7)) // drop "claude-"
+
         // Known families: opus, sonnet, haiku
         for family in ["opus", "sonnet", "haiku"] {
-            guard rest.hasPrefix(family) else { continue }
-            let afterFamily = String(rest.dropFirst(family.count))
-            // afterFamily is like "-4-6" or "-4-5-20251001"
-            let parts = afterFamily.split(separator: "-").compactMap { Int($0) }
-            // Take first two numeric parts as major.minor version
-            if parts.count >= 2 {
-                return ("Claude", "\(family.capitalized) \(parts[0]).\(parts[1])")
-            } else if parts.count == 1 {
-                return ("Claude", "\(family.capitalized) \(parts[0])")
+            guard rest.hasPrefix(family) || rest.contains("-\(family)") else { continue }
+
+            // Handle Bedrock format like "3-5-sonnet-20241022-v2" (version before family)
+            let afterFamily: String
+            if rest.hasPrefix(family) {
+                afterFamily = String(rest.dropFirst(family.count))
+            } else if let familyRange = rest.range(of: family) {
+                // e.g. "3-5-sonnet-20241022-v2" -> beforeFamily="3-5-", afterFamily="-20241022-v2"
+                let beforeFamily = String(rest[rest.startIndex..<familyRange.lowerBound])
+                afterFamily = String(rest[familyRange.upperBound...])
+                let beforeParts = beforeFamily.split(separator: "-").compactMap { Int($0) }
+                // Strip date suffixes (8-digit numbers like 20241022) from after
+                let afterParts = afterFamily.split(separator: "-").compactMap { Int($0) }.filter { $0 < 10000 }
+                let allParts = beforeParts + afterParts
+                if allParts.count >= 2 {
+                    return (provider, "\(family.capitalized) \(allParts[0]).\(allParts[1])")
+                } else if allParts.count == 1 {
+                    return (provider, "\(family.capitalized) \(allParts[0])")
+                }
+                return (provider, family.capitalized)
+            } else {
+                continue
             }
-            return ("Claude", family.capitalized)
+
+            // afterFamily is like "-4-6" or "-4-5-20251001" or "-4-6-20250515"
+            // Filter out date suffixes (8-digit numbers) and version suffixes (vN)
+            let parts = afterFamily.split(separator: "-")
+                .filter { !$0.hasPrefix("v") }
+                .compactMap { Int($0) }
+                .filter { $0 < 10000 } // exclude date components like 20251001
+            if parts.count >= 2 {
+                return (provider, "\(family.capitalized) \(parts[0]).\(parts[1])")
+            } else if parts.count == 1 {
+                return (provider, "\(family.capitalized) \(parts[0])")
+            }
+            return (provider, family.capitalized)
         }
-        return ("Claude", rest)
+        return (provider, rest)
     }
 
     /// Extract the model ID from the last assistant message in a Claude transcript.
@@ -246,13 +295,19 @@ public final class ReportHandler {
     /// Calculate cumulative cost from all assistant messages in a Claude transcript.
     /// Streams the file in chunks with a rolling buffer to handle line boundaries,
     /// so it works correctly on large transcripts without loading the entire file.
+    ///
+    /// Uses streaming deduplication (Set of composite keys) to avoid double-counting
+    /// entries that Claude Code writes multiple times per streaming response.
+    /// Accumulates cost as integer nanoseconds to prevent floating-point drift.
     public static func readCostFromTranscript(_ path: String) -> Double? {
         guard let fh = FileHandle(forReadingAtPath: path) else { return nil }
         defer { fh.closeFile() }
 
+        let config = PricingConfig.load()
         let chunkSize = 256 * 1024 // 256KB per read
-        var totalCost = 0.0
+        var totalNanos: Int = 0
         var leftover = ""
+        var seenEntries = Set<String>()
 
         while true {
             let data = fh.readData(ofLength: chunkSize)
@@ -265,62 +320,53 @@ public final class ReportHandler {
             leftover = lines.removeLast()
 
             for line in lines {
-                guard !line.isEmpty,
-                      let lineData = line.data(using: .utf8),
-                      let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-                      obj["type"] as? String == "assistant" else { continue }
-
-                let msg = obj["message"] as? [String: Any]
-                guard let usage = (msg?["usage"] ?? obj["usage"]) as? [String: Any] else { continue }
-
-                let model = (msg?["model"] ?? obj["model"]) as? String ?? ""
-                let pricing = tokenPricing(for: model)
-
-                let inputTokens = (usage["input_tokens"] as? Int) ?? 0
-                let outputTokens = (usage["output_tokens"] as? Int) ?? 0
-                let cacheRead = (usage["cache_read_input_tokens"] as? Int) ?? 0
-                let cacheCreate = (usage["cache_creation_input_tokens"] as? Int) ?? 0
-
-                totalCost += Double(inputTokens) * pricing.input / 1_000_000.0
-                totalCost += Double(outputTokens) * pricing.output / 1_000_000.0
-                totalCost += Double(cacheRead) * pricing.cacheRead / 1_000_000.0
-                totalCost += Double(cacheCreate) * pricing.cacheWrite / 1_000_000.0
+                totalNanos += processTranscriptLine(line, config: config, seenEntries: &seenEntries)
             }
         }
 
         // Process any remaining partial line
-        if !leftover.isEmpty,
-           let lineData = leftover.data(using: .utf8),
-           let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
-           obj["type"] as? String == "assistant" {
-            let msg = obj["message"] as? [String: Any]
-            if let usage = (msg?["usage"] ?? obj["usage"]) as? [String: Any] {
-                let model = (msg?["model"] ?? obj["model"]) as? String ?? ""
-                let pricing = tokenPricing(for: model)
-                let inputTokens = (usage["input_tokens"] as? Int) ?? 0
-                let outputTokens = (usage["output_tokens"] as? Int) ?? 0
-                let cacheRead = (usage["cache_read_input_tokens"] as? Int) ?? 0
-                let cacheCreate = (usage["cache_creation_input_tokens"] as? Int) ?? 0
-                totalCost += Double(inputTokens) * pricing.input / 1_000_000.0
-                totalCost += Double(outputTokens) * pricing.output / 1_000_000.0
-                totalCost += Double(cacheRead) * pricing.cacheRead / 1_000_000.0
-                totalCost += Double(cacheCreate) * pricing.cacheWrite / 1_000_000.0
-            }
+        if !leftover.isEmpty {
+            totalNanos += processTranscriptLine(leftover, config: config, seenEntries: &seenEntries)
         }
 
+        let totalCost = Double(totalNanos) / 1_000_000_000.0
         return totalCost > 0 ? totalCost : nil
     }
 
-    /// Per-million-token pricing for Claude models.
-    private static func tokenPricing(for model: String) -> (input: Double, output: Double, cacheRead: Double, cacheWrite: Double) {
-        if model.contains("opus") {
-            return (input: 15.0, output: 75.0, cacheRead: 1.50, cacheWrite: 18.75)
-        } else if model.contains("haiku") {
-            return (input: 0.80, output: 4.0, cacheRead: 0.08, cacheWrite: 1.0)
-        } else {
-            // Default to Sonnet pricing
-            return (input: 3.0, output: 15.0, cacheRead: 0.30, cacheWrite: 3.75)
-        }
+    /// Process a single JSONL transcript line and return cost in nanoseconds.
+    /// Returns 0 if the line is not a billable assistant message or is a duplicate.
+    private static func processTranscriptLine(_ line: String, config: PricingConfig, seenEntries: inout Set<String>) -> Int {
+        guard !line.isEmpty,
+              let lineData = line.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
+              obj["type"] as? String == "assistant" else { return 0 }
+
+        let msg = obj["message"] as? [String: Any]
+        guard let usage = (msg?["usage"] ?? obj["usage"]) as? [String: Any] else { return 0 }
+
+        let inputTokens = (usage["input_tokens"] as? Int) ?? 0
+        let outputTokens = (usage["output_tokens"] as? Int) ?? 0
+        let cacheRead = (usage["cache_read_input_tokens"] as? Int) ?? 0
+        let cacheCreate = (usage["cache_creation_input_tokens"] as? Int) ?? 0
+
+        // Build dedup key from message.id + usage hash
+        let messageId = (msg?["id"] as? String) ?? (obj["id"] as? String) ?? ""
+        let usageHash = "\(inputTokens):\(outputTokens):\(cacheRead):\(cacheCreate)"
+        let dedupKey = "\(messageId)|\(usageHash)"
+
+        // Skip duplicate streaming entries
+        guard seenEntries.insert(dedupKey).inserted else { return 0 }
+
+        let model = (msg?["model"] ?? obj["model"]) as? String ?? ""
+        let (pricing, _, _) = config.pricing(for: model)
+
+        // Accumulate as integer nanoseconds to prevent floating-point drift
+        var nanos = 0
+        nanos += Int((Double(inputTokens) * pricing.input / 1_000_000.0 * 1_000_000_000.0).rounded())
+        nanos += Int((Double(outputTokens) * pricing.output / 1_000_000.0 * 1_000_000_000.0).rounded())
+        nanos += Int((Double(cacheRead) * pricing.cacheRead / 1_000_000.0 * 1_000_000_000.0).rounded())
+        nanos += Int((Double(cacheCreate) * pricing.cacheWrite / 1_000_000.0 * 1_000_000_000.0).rounded())
+        return nanos
     }
 
     private static func truncate(_ text: String, maxLength: Int) -> String {

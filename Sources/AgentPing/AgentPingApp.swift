@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var watcher: DirectoryWatcher?
     var scanTimer: Timer?
     var syncTimer: Timer?
+    var quotaTimer: Timer?
     var cancellables = Set<AnyCancellable>()
     var hotKeyRef: EventHotKeyRef?
     var apiServer: APIServer?
@@ -98,6 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hookDetector.check()
         startPeriodicScan()
         startPeriodicSync()
+        startPeriodicQuotaRefresh()
 
         // Sparkle handles automatic update checks via SUEnableAutomaticChecks in Info.plist
     }
@@ -211,6 +213,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func startPeriodicQuotaRefresh() {
+        // Initial fetch
+        manager.refreshQuota()
+        // Refresh every 5 minutes (OAuthFetcher also caches internally)
+        quotaTimer?.invalidate()
+        quotaTimer = Timer.scheduledTimer(withTimeInterval: 300.0, repeats: true) { [weak self] _ in
+            self?.manager.refreshQuota()
+        }
+    }
+
     private func openPreferences() {
         popover.performClose(nil)
 
@@ -241,6 +253,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         watcher?.stop()
         scanTimer?.invalidate()
         syncTimer?.invalidate()
+        quotaTimer?.invalidate()
     }
 
     @objc func togglePopover() {

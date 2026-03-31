@@ -4,11 +4,14 @@ import Combine
 public final class SessionManager: ObservableObject {
     @Published public private(set) var sessions: [Session] = []
     @Published public private(set) var lastSyncAt: Date?
+    @Published public private(set) var quota: UsageQuota?
 
     public let store: SessionStore
+    private let oauthFetcher: OAuthFetcher
 
-    public init(store: SessionStore? = nil) {
+    public init(store: SessionStore? = nil, oauthFetcher: OAuthFetcher? = nil) {
         self.store = store ?? SessionStore()
+        self.oauthFetcher = oauthFetcher ?? OAuthFetcher.shared
     }
 
     public var activeSessions: [Session] {
@@ -129,6 +132,26 @@ public final class SessionManager: ObservableObject {
             reload()
         } catch {
             print("[AgentPing] updateSession(\(session.id)) failed: \(error)")
+        }
+    }
+
+    // MARK: - OAuth Quota
+
+    /// Refresh quota from the Anthropic usage API.
+    /// Safe to call frequently -- OAuthFetcher handles caching and coalescing.
+    public func refreshQuota() {
+        // Skip if all active sessions are Bedrock (no Anthropic token)
+        let hasAnthropicSession = activeSessions.contains { session in
+            guard let provider = session.provider?.lowercased() else { return true } // unknown = maybe anthropic
+            return provider != "bedrock"
+        }
+        guard hasAnthropicSession || activeSessions.isEmpty else { return }
+
+        Task {
+            let result = await oauthFetcher.fetchQuota()
+            await MainActor.run {
+                self.quota = result
+            }
         }
     }
 }

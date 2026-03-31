@@ -74,6 +74,53 @@ jobs:
             - `AgentPing-${{ github.ref_name }}-macos.tar.gz`: `${{ steps.sha.outputs.app_sha }}`
             - `agentping-cli-${{ github.ref_name }}-macos.tar.gz`: `${{ steps.sha.outputs.cli_sha }}`
 
+      - name: Update Sparkle appcast.xml
+        if: "!contains(github.ref_name, '-beta') && !contains(github.ref_name, '-rc')"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ github.ref_name }}"
+          VERSION_NUM="${VERSION#v}"
+          BUNDLE_VERSION=$(echo "$VERSION_NUM" | sed 's/-.*//')
+          TAR_SIZE=$(stat -f%z "AgentPing-${VERSION}-macos.tar.gz" 2>/dev/null || stat --printf="%s" "AgentPing-${VERSION}-macos.tar.gz")
+          PUB_DATE=$(date -u '+%a, %d %b %Y %H:%M:%S +0000')
+          DOWNLOAD_URL="https://github.com/ericermerimen/agentping/releases/download/${VERSION}/AgentPing-${VERSION}-macos.tar.gz"
+
+          # Write appcast to temp file first (we're on detached HEAD from the tag)
+          cat > /tmp/appcast.xml << APPCAST
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+              <title>AgentPing Updates</title>
+              <link>https://ericermerimen.github.io/agentping/appcast.xml</link>
+              <description>Most recent changes with links to updates.</description>
+              <language>en</language>
+              <item>
+                <title>Version ${VERSION_NUM}</title>
+                <pubDate>${PUB_DATE}</pubDate>
+                <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+                <enclosure
+                  url="${DOWNLOAD_URL}"
+                  sparkle:version="${BUNDLE_VERSION}"
+                  sparkle:shortVersionString="${VERSION_NUM}"
+                  length="${TAR_SIZE}"
+                  type="application/octet-stream"
+                />
+              </item>
+            </channel>
+          </rss>
+          APPCAST
+
+          # Switch to main branch and commit the updated appcast
+          git fetch origin main
+          git checkout main
+          cp /tmp/appcast.xml site/appcast.xml
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add site/appcast.xml
+          git commit -m "chore: update appcast.xml for ${VERSION}" || true
+          git push origin main
+
       - name: Update Homebrew tap formula
         env:
           TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
@@ -142,4 +189,17 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Formula/agentping.rb
           git commit -m "Update agentping to ${VERSION}" || true
-          git push
+
+          # Retry push with rebase to handle race conditions from other repos
+          for attempt in 1 2 3; do
+            if git push origin main; then
+              echo "==> Homebrew tap push succeeded (attempt $attempt)"
+              break
+            fi
+            echo "==> Push failed (attempt $attempt), pulling with rebase..."
+            git pull --rebase origin main || true
+            if [ "$attempt" -eq 3 ]; then
+              echo "ERROR: Failed to push to homebrew-tap after 3 attempts"
+              exit 1
+            fi
+          done

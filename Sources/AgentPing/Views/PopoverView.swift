@@ -25,8 +25,8 @@ struct PopoverView: View {
     private var syncTooltip: String {
         guard let lastSync = manager.lastSyncAt else { return "Sync sessions" }
         let seconds = Int(now.timeIntervalSince(lastSync))
-        if seconds < 5 { return "Synced just now" }
-        if seconds < 60 { return "Synced \(seconds)s ago" }
+        if seconds < 15 { return "Synced just now" }
+        if seconds < 60 { return "Synced <1 min ago" }
         let minutes = seconds / 60
         if minutes == 1 { return "Synced 1 min ago" }
         return "Synced \(minutes) min ago"
@@ -55,7 +55,7 @@ struct PopoverView: View {
             footer
         }
         .frame(width: 340, height: 460)
-        .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { now = $0 }
+        .onReceive(Timer.publish(every: 10, on: .main, in: .common).autoconnect()) { now = $0 }
     }
 
     // MARK: - Header
@@ -442,29 +442,91 @@ struct PopoverView: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack {
-            Text(syncTooltip)
-                .font(.system(size: 10))
-                .foregroundStyle(.quaternary)
+        VStack(spacing: 0) {
+            if let quota = manager.quota {
+                quotaBar(quota)
+                Divider().opacity(0.3)
+            }
 
-            Spacer()
-
-            if displayPrefs.costTrackingEnabled && manager.totalCost > 0 {
-                Text("Total cost (est.)")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
-                Text(String(format: "~$%.2f", manager.totalCost))
-                    .font(.system(size: 10).monospacedDigit())
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("\u{2303}\u{2325}A")
+            HStack {
+                Text(syncTooltip)
                     .font(.system(size: 10))
                     .foregroundStyle(.quaternary)
-                    .help("Toggle with Ctrl+Option+A")
+
+                Spacer()
+
+                if displayPrefs.costTrackingEnabled && manager.totalCost > 0 {
+                    Text("Total cost (est.)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                    Text(String(format: "~$%.2f", manager.totalCost))
+                        .font(.system(size: 10).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("\u{2303}\u{2325}A")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.quaternary)
+                        .help("Toggle with Ctrl+Option+A")
+                }
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+        }
+    }
+
+    private func quotaBar(_ quota: UsageQuota) -> some View {
+        HStack(spacing: 10) {
+            if let session = quota.sessionPercent {
+                quotaLabel("5h", percent: session)
+            }
+            if let weekly = quota.weeklyPercent {
+                quotaLabel("7d", percent: weekly)
+            }
+            if let spend = quota.monthlySpend {
+                HStack(spacing: 2) {
+                    Text("Mo")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.tertiary)
+                    Text(String(format: "$%.2f", spend))
+                        .font(.system(size: 10).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 6)
+        .padding(.vertical, 5)
+    }
+
+    private func quotaLabel(_ label: String, percent: Double) -> some View {
+        HStack(spacing: 3) {
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.tertiary)
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.primary.opacity(0.06))
+                        .frame(height: 4)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(quotaColor(percent))
+                        .frame(width: geo.size.width * min(percent, 1.0), height: 4)
+                }
+                .frame(maxHeight: .infinity, alignment: .center)
+            }
+            .frame(width: 36, height: 12)
+
+            Text("\(Int(percent * 100))%")
+                .font(.system(size: 9).monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func quotaColor(_ percent: Double) -> Color {
+        if percent >= 0.9 { return .red }
+        if percent >= 0.7 { return .orange }
+        return Color(.systemTeal)
     }
 
     // MARK: - Empty state
