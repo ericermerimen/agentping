@@ -14,7 +14,7 @@ The project was renamed from AgentsHub to AgentPing. The local directory is stil
 - **Build**: Swift Package Manager (no Xcode project)
 - **Dependencies**: swift-argument-parser (Apple, v1.6.2) -- only dependency
 - **CI**: GitHub Actions (release on tag push)
-- **Distribution**: Homebrew tap (`ericermerimen/tap/agentping`), curl installer, GitHub Releases
+- **Distribution**: Homebrew cask (`ericermerimen/tap/agentping`), curl installer, GitHub Releases
 
 ## Architecture
 
@@ -109,7 +109,7 @@ Port is written to `~/.agentping/port` for discovery. CLI reads this file to fin
 
 ## Secrets
 
-- `TAP_TOKEN` -- fine-grained GitHub PAT with Contents:RW on `homebrew-tap` repo. Used by release workflow to auto-update the Homebrew formula.
+- `TAP_TOKEN` -- fine-grained GitHub PAT with Contents:RW on `homebrew-tap` repo. Used by release workflow to auto-update the Homebrew cask.
 
 ## Release process
 
@@ -124,7 +124,7 @@ This triggers `.github/workflows/release.yml` which:
 3. Creates tarball with LICENSE (prevents Homebrew directory stripping)
 4. Publishes GitHub Release with SHA256 checksums
 5. Auto-generates Sparkle `appcast.xml` (committed to main, stable tags only)
-6. Auto-updates `homebrew-tap` formula with new URL + SHA (stable tags only, retry with rebase for race conditions)
+6. Auto-updates `homebrew-tap` cask with new URL + SHA (stable tags only, retry with rebase for race conditions)
 
 Beta/RC tags (`v0.X.0-beta.N`, `v0.X.0-rc.N`) are marked as prerelease and skip the Homebrew tap update.
 

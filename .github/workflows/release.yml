@@ -46,8 +46,7 @@ jobs:
 
             **Homebrew (recommended):**
             ```bash
-            brew install ericermerimen/tap/agentping
-            brew services start agentping
+            brew install --cask ericermerimen/tap/agentping
             ```
 
             **One-line install:**
@@ -121,7 +120,7 @@ jobs:
           git commit -m "chore: update appcast.xml for ${VERSION}" || true
           git push origin main
 
-      - name: Update Homebrew tap formula
+      - name: Update Homebrew tap cask
         env:
           TAP_TOKEN: ${{ secrets.TAP_TOKEN }}
         if: env.TAP_TOKEN != '' && !contains(github.ref_name, '-beta') && !contains(github.ref_name, '-rc')

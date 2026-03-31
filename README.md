@@ -37,14 +37,13 @@ A macOS menu bar app that monitors your Claude Code sessions, shows their status
 ### Homebrew (recommended)
 
 ```bash
-brew install ericermerimen/tap/agentping
-brew services start agentping
+brew install --cask ericermerimen/tap/agentping
 ```
 
-This launches AgentPing and auto-starts it on login. To upgrade:
+This installs AgentPing to `/Applications/`. Open the app and enable **Launch at Login** in Preferences. Sparkle handles automatic updates. To upgrade manually:
 
 ```bash
-brew upgrade agentping && brew services restart agentping
+brew upgrade --cask agentping
 ```
 
 ### One-line install
@@ -202,8 +201,7 @@ AgentPing uses the macOS Accessibility API to focus terminal windows when you cl
 
 **Homebrew:**
 ```bash
-brew services stop agentping
-brew uninstall agentping
+brew uninstall --cask agentping
 ```
 
 **Manual:**
@@ -222,11 +220,11 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-This builds a universal binary (arm64 + x86_64), packages the `.app`, publishes it as a GitHub Release, auto-generates the Sparkle `appcast.xml`, and updates the Homebrew formula (with retry + rebase for race conditions).
+This builds a universal binary (arm64 + x86_64), packages the `.app`, publishes it as a GitHub Release, auto-generates the Sparkle `appcast.xml`, and updates the Homebrew cask (with retry + rebase for race conditions).
 
-Beta/RC tags (e.g. `v0.7.0-beta.1`) are published as prereleases and do not update the Homebrew formula or appcast.
+Beta/RC tags (e.g. `v0.7.0-beta.1`) are published as prereleases and do not update the Homebrew cask or appcast.
 
-To enable automatic Homebrew tap updates, add a `TAP_TOKEN` secret to your repo (a personal access token with `repo` scope for `ericermerimen/homebrew-tap`).
+To enable automatic Homebrew cask updates, add a `TAP_TOKEN` secret to your repo (a personal access token with `repo` scope for `ericermerimen/homebrew-tap`).
 
 ## Architecture
 
