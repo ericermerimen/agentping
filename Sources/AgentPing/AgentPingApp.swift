@@ -224,6 +224,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startPeriodicQuotaRefresh() {
+        // OAuth quota is opt-in to avoid Keychain access prompts on launch
+        guard UserDefaults.standard.bool(forKey: "quotaTrackingEnabled") else { return }
         // Initial fetch
         manager.refreshQuota()
         // Refresh every 5 minutes (OAuthFetcher also caches internally)
