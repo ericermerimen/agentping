@@ -134,60 +134,43 @@ jobs:
           git clone "https://x-access-token:${TAP_TOKEN}@github.com/ericermerimen/homebrew-tap.git" /tmp/homebrew-tap
           cd /tmp/homebrew-tap
 
-          mkdir -p Formula
+          mkdir -p Casks
 
-          # Generate updated formula
-          cat > Formula/agentping.rb << FORMULA
-          class Agentping < Formula
-            desc "macOS menu bar app for monitoring Claude Code sessions"
-            homepage "https://github.com/ericermerimen/agentping"
-            url "${URL}"
+          # Generate updated cask
+          cat > Casks/agentping.rb << CASK
+          cask "agentping" do
+            version "${VERSION_NUM}"
             sha256 "${SHA}"
 
-            depends_on :macos
-            depends_on macos: :sonoma
+            url "${URL}"
+            name "AgentPing"
+            desc "macOS menu bar app for monitoring Claude Code sessions"
+            homepage "https://github.com/ericermerimen/agentping"
 
-            def install
-              prefix.install "AgentPing.app"
-              bin.install_symlink prefix/"AgentPing.app/Contents/MacOS/agentping"
+            depends_on macos: ">= :sonoma"
+
+            app "AgentPing.app"
+            binary "#{appdir}/AgentPing.app/Contents/MacOS/agentping"
+
+            postflight do
+              system "pkill", "-x", "AgentPingApp"
             end
 
-            def caveats
-              <<~EOS
-                To start AgentPing and auto-launch on login:
+            caveats <<~EOS
+              After install:
+                1. Open AgentPing from Applications
+                2. Grant Accessibility access when prompted
+                3. Open Preferences > "Copy Hook Config to Clipboard"
+                4. Paste into ~/.claude/settings.json
 
-                  brew services start agentping
-
-                After future upgrades:
-
-                  brew upgrade agentping && brew services restart agentping
-
-                Next steps:
-                  1. Grant Accessibility access when prompted
-                     (System Settings > Privacy & Security > Accessibility)
-                  2. Open Preferences > "Copy Hook Config to Clipboard"
-                  3. Paste into ~/.claude/settings.json
-                  4. Restart your Claude Code sessions
-              EOS
-            end
-
-            def post_install
-              # Kill any running AgentPing so brew services restart picks up the new binary
-              quiet_system "pkill", "-x", "AgentPingApp"
-            end
-
-            service do
-              run [opt_prefix/"AgentPing.app/Contents/MacOS/AgentPingApp"]
-              keep_alive true
-              log_path var/"log/agentping.log"
-              error_log_path var/"log/agentping-error.log"
-            end
+              AgentPing updates automatically via Sparkle.
+            EOS
           end
-          FORMULA
+          CASK
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/agentping.rb
+          git add Casks/agentping.rb
           git commit -m "Update agentping to ${VERSION}" || true
 
           # Retry push with rebase to handle race conditions from other repos
