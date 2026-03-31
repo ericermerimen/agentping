@@ -27,6 +27,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var apiServer: APIServer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Single-instance guard: quit if another AgentPing is already running
+        let runningApps = NSWorkspace.shared.runningApplications.filter {
+            $0.bundleIdentifier == Bundle.main.bundleIdentifier && $0.processIdentifier != ProcessInfo.processInfo.processIdentifier
+        }
+        if !runningApps.isEmpty {
+            print("[AgentPing] Another instance is already running (PID \(runningApps.first?.processIdentifier ?? 0)). Quitting.")
+            NSApplication.shared.terminate(nil)
+            return
+        }
+
         // Create status bar item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
