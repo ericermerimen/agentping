@@ -14,7 +14,10 @@ A macOS menu bar app that monitors your Claude Code sessions, shows their status
 - **macOS notifications** -- alerts when a session needs input, hits an error, or finishes
 - **Context menu** -- right-click to copy path/session ID, open transcript, mark done, or delete
 - **Context window bar** -- see how much of Claude's context each session has consumed
-- **Cost tracking** -- optional per-session cost display (enable in Preferences)
+- **Cost tracking** -- per-session cost display with streaming deduplication and integer nanosecond math (enable in Preferences)
+- **Externalized pricing** -- `~/.agentping/pricing.json` with per-provider rates, auto-written on first launch, Sonnet tiered pricing at 200K threshold
+- **OAuth quota** -- reads Claude Code credentials from Keychain or file, shows session/weekly quota % and monthly spend in popover footer
+- **Bedrock support** -- detects `anthropic.*` model ID prefix, strips version suffixes, provider-aware pricing lookup
 - **Session grouping** -- sessions grouped by project directory
 - **Auto-purge** -- finished sessions older than 24h are cleaned up automatically
 - **Search** -- filter sessions by name, project, or task
@@ -157,6 +160,36 @@ AgentPing works best with Claude Code hooks. Open the app preferences and click 
 }
 ```
 
+## Pricing Configuration
+
+AgentPing ships with built-in pricing for Anthropic and Bedrock providers. On first launch, it writes a default config to `~/.agentping/pricing.json` that you can edit:
+
+```json
+{
+  "version": 1,
+  "models": [
+    {
+      "model": "sonnet",
+      "provider": "anthropic",
+      "pricing": { "input": 3.0, "output": 15.0, "cacheRead": 0.30, "cacheWrite": 3.75 },
+      "tieredThreshold": 200000,
+      "tieredPricing": { "input": 6.0, "output": 30.0, "cacheRead": 0.60, "cacheWrite": 7.50 }
+    }
+  ]
+}
+```
+
+Rates are per million tokens. Sonnet uses tiered pricing -- rates double above the `tieredThreshold` (200K tokens). Bedrock models are detected automatically from `anthropic.*` model ID prefixes.
+
+## OAuth Quota
+
+If you use Claude Code with an Anthropic account (OAuth), AgentPing can show your quota usage in the popover footer. It reads credentials from:
+
+1. macOS Keychain (service: `Claude Code-credentials`)
+2. `~/.claude/.credentials.json`
+
+When credentials are found, the popover footer shows session (5-hour) and weekly (7-day) quota percentages plus monthly spend. Data is cached for 5 minutes. No configuration needed -- it works automatically if you're logged in to Claude Code.
+
 ## Keyboard Shortcut
 
 Press `Ctrl+Option+A` from anywhere to toggle the AgentPing popover. No need to click the menu bar icon.
@@ -189,9 +222,9 @@ git tag v0.1.0
 git push origin v0.1.0
 ```
 
-This builds a universal binary (arm64 + x86_64), packages the `.app`, publishes it as a GitHub Release, and automatically updates the Homebrew formula.
+This builds a universal binary (arm64 + x86_64), packages the `.app`, publishes it as a GitHub Release, auto-generates the Sparkle `appcast.xml`, and updates the Homebrew formula (with retry + rebase for race conditions).
 
-Beta/RC tags (e.g. `v0.7.0-beta.1`) are published as prereleases and do not update the Homebrew formula.
+Beta/RC tags (e.g. `v0.7.0-beta.1`) are published as prereleases and do not update the Homebrew formula or appcast.
 
 To enable automatic Homebrew tap updates, add a `TAP_TOKEN` secret to your repo (a personal access token with `repo` scope for `ericermerimen/homebrew-tap`).
 
@@ -215,7 +248,9 @@ Sources/
 ├── AgentPingCLI/        # CLI tool (ArgumentParser)
 │   └── main.swift
 └── AgentPingCore/       # Shared library
-    ├── Models/Session.swift
+    ├── Models/
+    │   ├── Session.swift
+    │   └── PricingConfig.swift
     ├── Store/SessionStore.swift
     ├── Manager/SessionManager.swift
     ├── Scanner/ProcessScanner.swift
@@ -225,7 +260,8 @@ Sources/
     └── API/
         ├── HTTPParser.swift
         ├── APIRouter.swift
-        └── APIServer.swift
+        ├── APIServer.swift
+        └── OAuthFetcher.swift
 ```
 
 ## Security
@@ -240,6 +276,8 @@ The HTTP API binds to **localhost only** and is unauthenticated. The threat mode
 ## Data Storage
 
 Session files are stored as JSON in `~/.agentping/sessions/`. Each session gets its own file (`<session-id>.json`). The directory is created with owner-only permissions (0700).
+
+Pricing configuration is stored at `~/.agentping/pricing.json` (auto-written on first launch with defaults).
 
 ## License
 

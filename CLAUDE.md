@@ -38,17 +38,20 @@ Sources/
 ├── AgentPingCLI/       # CLI tool (ArgumentParser)
 │   └── main.swift      # Commands: report, list, status, clear, delete
 └── AgentPingCore/      # Shared library (no UI)
-    ├── Models/Session.swift           # Session data model + JSON codable
+    ├── Models/
+    │   ├── Session.swift              # Session data model + JSON codable
+    │   └── PricingConfig.swift        # Externalized per-provider token pricing, tiered Sonnet rates
     ├── Store/SessionStore.swift       # File-based JSON persistence (~/.agentping/sessions/)
     ├── Manager/SessionManager.swift   # Session lifecycle, sync, auto-purge
     ├── Scanner/ProcessScanner.swift   # Detects running Claude processes via ps (used for initial scan/app detection)
     ├── Watcher/DirectoryWatcher.swift # FSEvents watcher for live updates
     ├── WindowJumper/WindowJumper.swift # Accessibility API window focus
-    ├── CLI/ReportHandler.swift        # Processes hook events, reads transcripts
+    ├── CLI/ReportHandler.swift        # Processes hook events, reads transcripts, streaming dedup
     └── API/
         ├── HTTPParser.swift           # Minimal HTTP/1.1 request/response parser
         ├── APIRouter.swift            # REST route handling + input validation
-        └── APIServer.swift            # NWListener TCP server (localhost only)
+        ├── APIServer.swift            # NWListener TCP server (localhost only)
+        └── OAuthFetcher.swift         # Reads Claude Code OAuth creds, fetches quota from Anthropic API
 ```
 
 ## How it works
@@ -88,7 +91,10 @@ Port is written to `~/.agentping/port` for discovery. CLI reads this file to fin
 - **Notifications** -- ready (agent finished), needs-input, error, done, context window warning (80%+)
 - **Auto-sync** -- sessions with dead processes auto-marked done every 30s via kill(pid, 0)
 - **Context bar** -- visual progress bar for context window usage (green/orange/red)
-- **Cost tracking** -- optional per-session and total cost display
+- **Cost tracking** -- per-session and total cost with streaming dedup (message.id + usage hash) and integer nanosecond math
+- **Externalized pricing** -- `~/.agentping/pricing.json`, per-provider rates, auto-written on first launch, Sonnet tiered at 200K
+- **OAuth quota** -- session/weekly quota % and monthly spend in popover footer (reads Keychain or ~/.claude/.credentials.json)
+- **Bedrock support** -- detects `anthropic.*` / `us.anthropic.*` model ID prefix, strips version suffixes, provider-aware pricing
 - **Auto-purge** -- finished sessions older than 24h removed on launch
 - **CLI** -- `agentping list/status/report/clear/delete`
 - **HTTP API** -- localhost REST API for third-party tool integration (port 19199)
@@ -117,7 +123,8 @@ This triggers `.github/workflows/release.yml` which:
 2. Creates `.app` bundle via `Scripts/package_app.sh`
 3. Creates tarball with LICENSE (prevents Homebrew directory stripping)
 4. Publishes GitHub Release with SHA256 checksums
-5. Auto-updates `homebrew-tap` formula with new URL + SHA (stable tags only)
+5. Auto-generates Sparkle `appcast.xml` (committed to main, stable tags only)
+6. Auto-updates `homebrew-tap` formula with new URL + SHA (stable tags only, retry with rebase for race conditions)
 
 Beta/RC tags (`v0.X.0-beta.N`, `v0.X.0-rc.N`) are marked as prerelease and skip the Homebrew tap update.
 
@@ -131,6 +138,7 @@ Beta/RC tags (`v0.X.0-beta.N`, `v0.X.0-rc.N`) are marked as prerelease and skip 
 ## Data storage
 
 - Sessions: `~/.agentping/sessions/<id>.json` (0700 dir permissions)
+- Pricing: `~/.agentping/pricing.json` (auto-written with defaults on first launch, user-editable)
 - Preferences: macOS UserDefaults (`launchAtLogin`, `notificationsEnabled`, `scanInterval`, `costTrackingEnabled`)
 
 ## Build commands
